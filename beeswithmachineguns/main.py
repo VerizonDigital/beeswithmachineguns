@@ -119,6 +119,12 @@ commands:
     attack_group.add_option('-P', '--contenttype', metavar="CONTENTTYPE", nargs=1,
                             action='store', dest='contenttype', type='string', default='text/plain',
                             help="ContentType header to send to the target of the attack.")
+    attack_group.add_option('-S', '--seconds', metavar="SECONDS", nargs=1,
+                            action='store', dest='seconds', type='int', default=60,
+                            help= "HLX only: The number of total seconds to attack the target (default: 60).")
+    attack_group.add_option('-M', '--rate', metavar="RATE", nargs=1,
+                            action='store', dest='rate', type='int', 
+                            help= "HLX only: Max Request Rate.")
 
     # Optional
     attack_group.add_option('-T', '--tpr', metavar='TPR', nargs=1, action='store', dest='tpr', default=None, type='float',
@@ -127,6 +133,13 @@ commands:
                             help='The lower bounds for request per second. If this option is passed and the target is above the value a 1 will be returned with the report details (default: None).')
     attack_group.add_option('-A', '--basic_auth', metavar='basic_auth', nargs=1, action='store', dest='basic_auth', default='', type='string',
                             help='BASIC authentication credentials, format auth-username:password (default: None).')
+    attack_group.add_option('-j', '--hlx', metavar="HLX_COMMANDS", 
+                            action='store_true', dest='hlx', 
+                            help="hlx options")
+    attack_group.add_option('-o', '--long_output', metavar="LONG_OUTPUT", 
+                            action='store_true', dest='long_output', 
+                            help="display hurl output")
+    
 
     parser.add_option_group(attack_group)
 
@@ -164,10 +177,16 @@ commands:
             tpr=options.tpr,
             rps=options.rps,
             basic_auth=options.basic_auth,
-            contenttype=options.contenttype
+            contenttype=options.contenttype,
+            hlx=options.hlx,
+            seconds=options.seconds,
+            rate=options.rate,
+            long_output=options.long_output
         )
-
-        bees.attack(options.url, options.number, options.concurrent, **additional_options)
+        if options.hlx:
+            bees.hlx_attack(options.url, options.number, options.concurrent, **additional_options)
+        else:
+            bees.attack(options.url, options.number, options.concurrent, **additional_options)
     elif command == 'down':
         bees.down()
     elif command == 'report':

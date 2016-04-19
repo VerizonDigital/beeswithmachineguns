@@ -47,6 +47,11 @@ import traceback
 import boto.ec2
 import boto.exception
 import paramiko
+import json
+import pdb
+from collections import defaultdict
+import time
+from sets import Set
 
 STATE_FILENAME = os.path.expanduser('~/.bees')
 
@@ -360,7 +365,7 @@ def _attack(params):
 
         params['options'] = options
         benchmark_command = 'ab -v 3 -r -n %(num_requests)s -c %(concurrent_requests)s %(options)s "%(url)s"' % params
-        #print(benchmark_command)
+        print(benchmark_command)
         stdin, stdout, stderr = client.exec_command(benchmark_command)
 
         response = {}
@@ -726,3 +731,499 @@ def attack(url, n, c, **options):
         else:
             print('Your targets performance tests meet our standards, the Queen sends her regards.')
             sys.exit(0)
+
+#############################################
+# HLX version methods, cleaner to do this way than modifying existing functions built for AB
+##############################################
+
+def hlx_attack(url, n, c, **options):
+    """
+    Test the root url of this site.
+    """
+    username, key_name, zone, instance_ids = _read_server_list()
+    headers = options.get('headers', '')
+    contenttype = options.get('contenttype', '')
+    csv_filename = options.get("csv_filename", '')
+    cookies = options.get('cookies', '')
+    post_file = options.get('post_file', '')
+    keep_alive = options.get('keep_alive', False)
+    basic_auth = options.get('basic_auth', '')
+
+    if csv_filename:
+        try:
+            stream = open(csv_filename, 'w')
+        except IOError as e:
+            raise IOError("Specified csv_filename='%s' is not writable. Check permissions or specify a different filename and try again." % csv_filename)
+
+    if not instance_ids:
+        print('No bees are ready to attack.')
+        return
+
+    print('Connecting to the hive.')
+
+    ec2_connection = boto.ec2.connect_to_region(_get_region(zone))
+
+    print('Assembling bees.')
+
+    reservations = ec2_connection.get_all_instances(instance_ids=instance_ids)
+
+    instances = []
+
+    for reservation in reservations:
+        instances.extend(reservation.instances)
+
+    instance_count = len(instances)
+
+    if n < instance_count * 2:
+        print('bees: error: the total number of requests must be at least %d (2x num. instances)' % (instance_count * 2))
+        return
+    if c < instance_count:
+        print('bees: error: the number of concurrent requests must be at least %d (num. instances)' % instance_count)
+        return
+    if n < c:
+        print('bees: error: the number of concurrent requests (%d) must be at most the same as number of requests (%d)' % (c, n))
+        return
+
+    requests_per_instance = int(float(n) / instance_count)
+    connections_per_instance = int(float(c) / instance_count)
+
+    print('Each of %i bees will fire %s rounds, %s at a time.' % (instance_count, requests_per_instance, connections_per_instance))
+
+    params = []
+
+    for i, instance in enumerate(instances):
+        params.append({
+            'i': i,
+            'instance_id': instance.id,
+            'instance_name': instance.private_dns_name if instance.public_dns_name == "" else instance.public_dns_name,
+            'url': url,
+            'concurrent_requests': connections_per_instance,
+            'num_requests': requests_per_instance,
+            'username': username,
+            'key_name': key_name,
+            'headers': headers,
+            'contenttype': contenttype,
+            'cookies': cookies,
+            'post_file': options.get('post_file'),
+            'keep_alive': options.get('keep_alive'),
+            'mime_type': options.get('mime_type', ''),
+            'tpr': options.get('tpr'),
+            'rps': options.get('rps'),
+            'basic_auth': options.get('basic_auth'),
+            'seconds': options.get('seconds'),
+            'rate' : options.get('rate'),
+            'long_output' : options.get('long_output')
+        })
+
+  
+    print('Stinging URL so it will be cached for the attack.')
+
+    request = Request(url)
+    # Need to revisit to support all http verbs.
+    if post_file:
+        try:
+            with open(post_file, 'r') as content_file:
+                content = content_file.read()
+            if IS_PY2:
+                request.add_data(content)
+            else:
+                # python3 removed add_data method from Request and added data attribute, either bytes or iterable of bytes
+                request.data = bytes(content.encode('utf-8'))
+        except IOError:
+            print('bees: error: The post file you provided doesn\'t exist.')
+            return
+
+    if cookies is not '':
+        request.add_header('Cookie', cookies)
+
+    if basic_auth is not '':
+        authentication = base64.encodestring(basic_auth).replace('\n', '')
+        request.add_header('Authorization', 'Basic %s' % authentication)
+
+    # Ping url so it will be cached for testing
+    dict_headers = {}
+    if headers is not '':
+        dict_headers = headers = dict(j.split(':') for j in [i.strip() for i in headers.split(';') if i != ''])
+
+    if contenttype is not '':
+        request.add_header("Content-Type", contenttype)
+
+    for key, value in dict_headers.items():
+        request.add_header(key, value)
+
+    if url.lower().startswith("https://") and hasattr(ssl, '_create_unverified_context'):
+        context = ssl._create_unverified_context()
+        response = urlopen(request, context=context)
+    else:
+        response = urlopen(request)
+
+    response.read()
+
+    print('Organizing the swarm.')
+    # Spin up processes for connecting to EC2 instances
+    pool = Pool(len(params))
+    results = pool.map(_hlx_attack, params)
+
+    ###Commenting for now until can get to output section
+    
+    summarized_results = _hlx_summarize_results(results, params, csv_filename)
+    print('Offensive complete.')
+   
+    _hlx_print_results(summarized_results)
+
+    print('The swarm is awaiting new orders.')
+
+    # if 'performance_accepted' in summarized_results:
+    #     if summarized_results['performance_accepted'] is False:
+    #         print("Your targets performance tests did not meet our standard.")
+    #         sys.exit(1)
+    #     else:
+    #         print('Your targets performance tests meet our standards, the Queen sends her regards.')
+    #         sys.exit(0)
+
+
+def _hlx_attack(params):
+    """
+    Test the target URL with requests.
+
+    Intended for use with multiprocessing.
+    """
+
+    print('Bee %i is joining the swarm.' % params['i'])
+
+    try:
+        client = paramiko.SSHClient()
+        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+        pem_path = params.get('key_name') and _get_pem_path(params['key_name']) or None
+        if not os.path.isfile(pem_path):
+            client.load_system_host_keys()
+            client.connect(params['instance_name'], username=params['username'])
+        else:
+            client.connect(
+                params['instance_name'],
+                username=params['username'],
+                key_filename=pem_path)
+
+        print('Bee %i is firing her machine gun. Bang bang!' % params['i'])
+
+        options = ''
+        if params['headers'] is not '':
+            for h in params['headers'].split(';'):
+                if h != '':
+                    options += ' -H "%s"' % h.strip()
+
+        if params['contenttype'] is not '':
+            options += ' -H  \"Content-Type : %s\"' % params['contenttype']
+            
+        stdin, stdout, stderr = client.exec_command('mktemp')
+        # paramiko's read() returns bytes which need to be converted back to a str
+        params['csv_filename'] = IS_PY2 and stdout.read().strip() or stdout.read().decode('utf-8').strip()
+        if params['csv_filename']:
+            options += ' -o %(csv_filename)s' % params
+        else:
+            print('Bee %i lost sight of the target (connection timed out creating csv_filename).' % params['i'])
+            return None
+
+        if params['post_file']:
+            pem_file_path=_get_pem_path(params['key_name'])
+            scpCommand = "scp -q -o 'StrictHostKeyChecking=no' -i %s %s %s@%s:~/" % (pem_file_path, params['post_file'], params['username'], params['instance_name'])
+            os.system(scpCommand)
+            options += ' -p ~/%s' % params['post_file']
+
+        if params['cookies'] is not '':
+            options += ' -H \"Cookie: %s;\"' % params['cookies']
+        else:
+            options += ' -H \"Cookie: sessionid=NotARealSessionID\"'
+
+        if params['basic_auth'] is not '':
+            options += ' -H \"Authorization : Basic %s\"' % params['basic_auth']
+
+        if params['seconds']:
+            options += ' -l %d' % params['seconds']
+
+        if params['rate']:
+            options += ' -A %d' % params['rate']
+
+        params['options'] = options
+      
+        hurl_command = 'hurl %(url)s -p %(concurrent_requests)s %(options)s -j' % params
+        #print(hurl_command)
+        stdin, stdout, stderr = client.exec_command(hurl_command)
+
+        response = defaultdict(int)
+        
+        # paramiko's read() returns bytes which need to be converted back to a str
+        hurl_results = IS_PY2 and stdout.read() or stdout.read().decode('utf-8')
+        
+        #print output for each instance if -o/--long_output is supplied
+        def _long_output():
+            '''if long_output option,.. display info per bee instead of summarized version'''
+            tabspace=''
+            singletab=()
+            doubletabs=('seconds', 'connect-ms-min',
+                       'fetches','bytes-per-sec',
+                       'end2end-ms-min', 
+                       'max-parallel', 'response-codes',
+                       'end2end-ms-max', 'connect-ms-max' )
+            trippletab=('bytes')
+            try:
+                print("Bee: {}").format(params['instance_id'])
+                for k, v in response.items():
+                    if k == 'response-codes':
+                        print k
+                        tabspace='\t'
+                        for rk, rv in v.items():
+                            print("{}{}:{}{}").format(tabspace, rk, tabspace+tabspace, rv)
+                        continue
+                    if k in doubletabs:
+                        tabspace='\t\t'
+                    elif k in trippletab:
+                        tabspace='\t\t\t'
+                    else:
+                        tabspace='\t'
+                    print("{}:{}{}").format(k, tabspace, v)
+                print("\n")
+                
+            except:
+                print("Please check the url entered, also possible no requests were successful Line: 1018")
+                return None
+            
+
+        #create the response dict to return to hlx_attack()
+        stdin, stdout, stderr = client.exec_command('cat %(csv_filename)s' % params)
+        try:
+            hurl_json = dict(json.loads(stdout.read().decode('utf-8')))
+            for k ,v in hurl_json.items():
+                response[k] = v
+                
+            #check if user wants output for seperate instances and display if so   
+            if params['long_output']:
+                print "\n", params['instance_id'] + "\n",params['instance_name'] + "\n" , hurl_results
+                _long_output()    
+        except:
+            print("Please check the url entered, also possible no requests were successful Line: 1032")
+            #return None
+        finally:
+            return response
+
+        
+
+        
+        print hurl_json['response-codes']
+        response['request_time_cdf'] = []
+        for row in csv.DictReader(stdout):
+            row["Time in ms"] = float(row["Time in ms"])
+            response['request_time_cdf'].append(row)
+        if not response['request_time_cdf']:
+            print('Bee %i lost sight of the target (connection timed out reading csv).' % params['i'])
+            return None
+        
+        print('Bee %i is out of ammo.' % params['i'])
+
+        client.close()
+
+        return response
+    except socket.error as e:
+        return e
+    except Exception as e:
+        traceback.print_exc()
+        print()
+        raise e
+        
+def _hlx_summarize_results(results, params, csv_filename):
+   
+    #summarized_results = dict()
+    summarized_results = defaultdict(int)
+    summarized_results['timeout_bees'] = [r for r in results if r is None]
+    summarized_results['exception_bees'] = [r for r in results if type(r) == socket.error]
+    summarized_results['complete_bees'] = [r for r in results if r is not None and type(r) != socket.error]
+    summarized_results['timeout_bees_params'] = [p for r, p in zip(results, params) if r is None]
+    summarized_results['exception_bees_params'] = [p for r, p in zip(results, params) if type(r) == socket.error]
+    summarized_results['complete_bees_params'] = [p for r, p in zip(results, params) if r is not None and type(r) != socket.error]
+    summarized_results['num_timeout_bees'] = len(summarized_results['timeout_bees'])
+    summarized_results['num_exception_bees'] = len(summarized_results['exception_bees'])
+    summarized_results['num_complete_bees'] = len(summarized_results['complete_bees'])
+
+#     complete_results = [r['complete_requests'] for r in summarized_results['complete_bees']]
+#     summarized_results['total_complete_requests'] = sum(complete_results)
+    
+    complete_results = [r['fetches'] for r in summarized_results['complete_bees']]
+    summarized_results['total_complete_requests'] = sum(complete_results)
+
+    #make summarized_results based of the possible response codes hurl gets
+    reported_response_codes = [r['response-codes'] for r in [x for x in summarized_results['complete_bees']]]
+    for i in reported_response_codes:
+        if isinstance(i, dict):
+            for k , v in i.items():
+                if k.startswith('20'):
+                    summarized_results['total_number_of_200s']+=float(v)
+                elif k.startswith('30'):
+                    summarized_results['total_number_of_300s']+=float(v)
+                elif k.startswith('40'):
+                    summarized_results['total_number_of_400s']+=float(v)
+                elif k.startswith('50'):
+                    summarized_results['total_number_of_400s']+=float(v)
+
+    complete_results = [r['bytes'] for r in summarized_results['complete_bees']]
+    summarized_results['total_bytes'] = sum(complete_results)
+    
+    complete_results = [r['seconds'] for r in summarized_results['complete_bees']]
+    summarized_results['seconds'] = max(complete_results)
+    
+    complete_results = [r['connect-ms-max'] for r in summarized_results['complete_bees']]
+    summarized_results['connect-ms-max'] = max(complete_results)
+    
+    complete_results = [r['1st-resp-ms-max'] for r in summarized_results['complete_bees']]
+    summarized_results['1st-resp-ms-max'] = max(complete_results)
+    
+    complete_results = [r['1st-resp-ms-mean'] for r in summarized_results['complete_bees']]
+    summarized_results['1st-resp-ms-mean'] = sum(complete_results) / summarized_results['num_complete_bees']
+    
+    complete_results = [r['fetches-per-sec'] for r in summarized_results['complete_bees']]
+    summarized_results['fetches-per-sec'] = sum(complete_results) / summarized_results['num_complete_bees']
+    
+    complete_results = [r['fetches'] for r in summarized_results['complete_bees']]
+    summarized_results['total-fetches'] = sum(complete_results) 
+    
+    complete_results = [r['connect-ms-min'] for r in summarized_results['complete_bees']]
+    summarized_results['connect-ms-min'] = min(complete_results) 
+    
+    complete_results = [r['bytes-per-sec'] for r in summarized_results['complete_bees']]
+    summarized_results['bytes-per-second-mean'] = sum(complete_results) / summarized_results['num_complete_bees']
+    
+    complete_results = [r['end2end-ms-min'] for r in summarized_results['complete_bees']]
+    summarized_results['end2end-ms-min'] = sum(complete_results) / summarized_results['num_complete_bees']
+    
+    complete_results = [r['mean-bytes-per-conn'] for r in summarized_results['complete_bees']]
+    summarized_results['mean-bytes-per-conn'] = sum(complete_results) / summarized_results['num_complete_bees']
+    
+    complete_results = [r['connect-ms-mean'] for r in summarized_results['complete_bees']]
+    summarized_results['connect-ms-mean'] = sum(complete_results) / summarized_results['num_complete_bees']
+
+    
+
+#     complete_results = [r['1st-resp-ms-max'] for r in summarized_results['complete_bees']]
+#     summarized_results['1st-resp-ms-max'] = sum(complete_results)
+    
+#     complete_results = [r['failed_requests'] for r in summarized_results['complete_bees']]
+#     summarized_results['total_failed_requests'] = sum(complete_results)
+
+#     complete_results = [r['failed_requests_connect'] for r in summarized_results['complete_bees']]
+#     summarized_results['total_failed_requests_connect'] = sum(complete_results)
+
+#     complete_results = [r['failed_requests_receive'] for r in summarized_results['complete_bees']]
+#     summarized_results['total_failed_requests_receive'] = sum(complete_results)
+
+#     complete_results = [r['failed_requests_length'] for r in summarized_results['complete_bees']]
+#     summarized_results['total_failed_requests_length'] = sum(complete_results)
+
+#     complete_results = [r['failed_requests_exceptions'] for r in summarized_results['complete_bees']]
+#     summarized_results['total_failed_requests_exceptions'] = sum(complete_results)
+    
+#     complete_results = [r['requests_per_second'] for r in summarized_results['complete_bees']]
+#     summarized_results['mean_requests'] = sum(complete_results)
+
+   
+#     complete_results = [r['ms_per_request'] for r in summarized_results['complete_bees']]
+#     if summarized_results['num_complete_bees'] == 0:
+#         summarized_results['mean_response'] = "no bees are complete"
+#     else:
+#         summarized_results['mean_response'] = sum(complete_results) / summarized_results['num_complete_bees']
+
+    complete_results = [r['connect-ms-mean'] for r in summarized_results['complete_bees']]
+    if summarized_results['num_complete_bees'] == 0:
+        summarized_results['mean_response'] = "no bees are complete"
+    else:
+        summarized_results['mean_response'] = sum(complete_results) / summarized_results['num_complete_bees']
+
+    
+    summarized_results['tpr_bounds'] = params[0]['tpr']
+    summarized_results['rps_bounds'] = params[0]['rps']
+
+    if summarized_results['tpr_bounds'] is not None:
+        if summarized_results['mean_response'] < summarized_results['tpr_bounds']:
+            summarized_results['performance_accepted'] = True
+        else:
+            summarized_results['performance_accepted'] = False
+
+    if summarized_results['rps_bounds'] is not None:
+        if summarized_results['mean_requests'] > summarized_results['rps_bounds'] and summarized_results['performance_accepted'] is True or None:
+            summarized_results['performance_accepted'] = True
+        else:
+            summarized_results['performance_accepted'] = False
+
+    summarized_results['request_time_cdf'] = _get_request_time_cdf(summarized_results['total_complete_requests'], summarized_results['complete_bees'])
+    if csv_filename:
+        _create_request_time_cdf_csv(results, summarized_results['complete_bees_params'], summarized_results['request_time_cdf'], csv_filename)
+
+    return summarized_results
+
+
+def _hlx_print_results(summarized_results):
+#     pdb.set_trace()
+    """
+    Print summarized load-testing results.
+    """
+    if summarized_results['exception_bees']:
+        print('     %i of your bees didn\'t make it to the action. They might be taking a little longer than normal to'
+              ' find their machine guns, or may have been terminated without using "bees down".' % summarized_results['num_exception_bees'])
+
+    if summarized_results['timeout_bees']:
+        print('     Target timed out without fully responding to %i bees.' % summarized_results['num_timeout_bees'])
+
+    if summarized_results['num_complete_bees'] == 0:
+        print('     No bees completed the mission. Apparently your bees are peace-loving hippies.')
+        return
+    print('\nSummarized Results')
+    print('     Total bytes:\t\t%i' % summarized_results['total_bytes'])
+    print('     Seconds:\t\t\t%i' % summarized_results['seconds'])
+    print('     Connect-ms-max:\t\t%f' % summarized_results['connect-ms-max'])
+    print('     1st-resp-ms-max:\t\t%f' % summarized_results['1st-resp-ms-max'])
+    print('     1st-resp-ms-mean:\t\t%f' % summarized_results['1st-resp-ms-mean'])
+    print('     Fetches/sec mean:\t\t%f' % summarized_results['fetches-per-sec'])
+    print('     connect-ms-min:\t\t%f' % summarized_results['connect-ms-min'])
+    print('     Total fetches:\t\t%i' % summarized_results['total-fetches'])
+    print('     bytes/sec mean:\t\t%f' % summarized_results['bytes-per-second-mean'])
+    print('     end2end-ms-min mean:\t%f' % summarized_results['end2end-ms-min'])
+    print('     mean-bytes-per-conn:\t%f' % summarized_results['mean-bytes-per-conn'])
+    print('     connect-ms-mean:\t\t%f' % summarized_results['connect-ms-mean'])
+    print('\nResponse Codes:')
+
+
+#     print('     Complete requests:\t\t%i' % summarized_results['total_complete_requests'])
+
+#     print('     Failed requests:\t\t%i' % summarized_results['total_failed_requests'])
+#     print('          connect:\t\t%i' % summarized_results['total_failed_requests_connect'])
+#     print('          receive:\t\t%i' % summarized_results['total_failed_requests_receive'])
+#     print('          length:\t\t%i' % summarized_results['total_failed_requests_length'])
+#     print('          exceptions:\t\t%i' % summarized_results['total_failed_requests_exceptions'])
+#     print('     Response Codes:')
+    print('     2xx:\t\t\t%i' % summarized_results['total_number_of_200s'])
+    print('     3xx:\t\t\t%i' % summarized_results['total_number_of_300s'])
+    print('     4xx:\t\t\t%i' % summarized_results['total_number_of_400s'])
+    print('     5xx:\t\t\t%i' % summarized_results['total_number_of_500s'])
+#     print('     Requests per second:\t%f [#/sec] (mean of bees)' % summarized_results['mean_requests'])
+#     if 'rps_bounds' in summarized_results and summarized_results['rps_bounds'] is not None:
+#         print('     Requests per second:\t%f [#/sec] (upper bounds)' % summarized_results['rps_bounds'])
+
+#     print('     Time per request:\t\t%f [ms] (mean of bees)' % summarized_results['mean_response'])
+#     if 'tpr_bounds' in summarized_results and summarized_results['tpr_bounds'] is not None:
+#         print('     Time per request:\t\t%f [ms] (lower bounds)' % summarized_results['tpr_bounds'])
+
+#     print('     50%% responses faster than:\t%f [ms]' % summarized_results['request_time_cdf'][49])
+#     print('     90%% responses faster than:\t%f [ms]' % summarized_results['request_time_cdf'][89])
+
+#     if 'performance_accepted' in summarized_results:
+#         print('     Performance check:\t\t%s' % summarized_results['performance_accepted'])
+
+    if summarized_results['mean_response'] < 500:
+        print('Mission Assessment: Target crushed bee offensive.')
+    elif summarized_results['mean_response'] < 1000:
+        print('Mission Assessment: Target successfully fended off the swarm.')
+    elif summarized_results['mean_response'] < 1500:
+        print('Mission Assessment: Target wounded, but operational.')
+    elif summarized_results['mean_response'] < 2000:
+        print('Mission Assessment: Target severely compromised.')
+    else:
+        print('Mission Assessment: Swarm annihilated target.')
