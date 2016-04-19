@@ -64,32 +64,36 @@ def _redirect_stdout(outfile=None):
     yield
     sys.stdout = save_stdout
 
-def _read_server_list():
+def _read_server_list(*mr_zone):
     instance_ids = []
-
-    if not os.path.isfile(STATE_FILENAME):
+    if len(mr_zone) > 0:
+        MR_STATE_FILENAME = _get_new_state_file_name(mr_zone[-1])
+    else:
+        MR_STATE_FILENAME = STATE_FILENAME
+    if not os.path.isfile(MR_STATE_FILENAME):
         return (None, None, None, None)
 
-    with open(STATE_FILENAME, 'r') as f:
+    with open(MR_STATE_FILENAME, 'r') as f:
         username = f.readline().strip()
         key_name = f.readline().strip()
         zone = f.readline().strip()
         text = f.read()
         instance_ids = [i for i in text.split('\n') if i != '']
 
-        print('Read %i bees from the roster.' % len(instance_ids))
+        print('Read {} bees from the roster: {}').format(len(instance_ids), zone)
 
     return (username, key_name, zone, instance_ids)
 
 def _write_server_list(username, key_name, zone, instances):
-    with open(STATE_FILENAME, 'w') as f:
+    with open(_get_new_state_file_name(zone), 'w') as f:
         f.write('%s\n' % username)
         f.write('%s\n' % key_name)
         f.write('%s\n' % zone)
         f.write('\n'.join([instance.id for instance in instances]))
 
-def _delete_server_list():
-    os.remove(STATE_FILENAME)
+def _delete_server_list(zone):
+    os.remove(_get_new_state_file_name(zone))
+
 
 def _get_pem_path(key):
     return os.path.expanduser('~/.ssh/%s.pem' % key)
@@ -119,7 +123,7 @@ def up(count, group, zone, image_id, instance_type, username, key_name, subnet, 
     Startup the load testing server.
     """
     
-    existing_username, existing_key_name, existing_zone, instance_ids = _read_server_list()
+    existing_username, existing_key_name, existing_zone, instance_ids = _read_server_list(zone)
 
     count = int(count)
     if existing_username == username and existing_key_name == key_name and existing_zone == zone:
@@ -132,8 +136,6 @@ def up(count, group, zone, image_id, instance_type, username, key_name, subnet, 
             print('Bees are already assembled and awaiting orders.')
             return
         else:
-            # for instance in existing_instances:
-            #     if instance.state
             # Count is greater than the amount of existing instances. Need to create the only the extra instances.
             count -= len(existing_instances)
     elif instance_ids:
@@ -144,7 +146,7 @@ def up(count, group, zone, image_id, instance_type, username, key_name, subnet, 
         with _redirect_stdout():
             down()
         # down() deletes existing state file so _read_server_list() returns a blank state
-        existing_username, existing_key_name, existing_zone, instance_ids = _read_server_list()
+        existing_username, existing_key_name, existing_zone, instance_ids = _read_server_list(zone)
 
     pem_path = _get_pem_path(key_name)
 
@@ -206,6 +208,7 @@ def up(count, group, zone, image_id, instance_type, username, key_name, subnet, 
                 
         except boto.exception.EC2ResponseError as e:
             print("Unable to call bees:", e.message)
+            print("Is your sec group available in this region?")
             return e
 
         instances = reservation.instances
@@ -242,46 +245,59 @@ def report():
     """
     Report the status of the load testing servers.
     """
-    username, key_name, zone, instance_ids = _read_server_list()
+    def _check_instances():
+        '''helper function to check multiple region files ~/.bees.*'''
+        if not instance_ids:
+            print('No bees have been mobilized.')
+            return
 
-    if not instance_ids:
-        print('No bees have been mobilized.')
-        return
+        ec2_connection = boto.ec2.connect_to_region(_get_region(zone))
 
-    ec2_connection = boto.ec2.connect_to_region(_get_region(zone))
+        reservations = ec2_connection.get_all_instances(instance_ids=instance_ids)
 
-    reservations = ec2_connection.get_all_instances(instance_ids=instance_ids)
+        instances = []
 
-    instances = []
+        for reservation in reservations:
+            instances.extend(reservation.instances)
 
-    for reservation in reservations:
-        instances.extend(reservation.instances)
+        for instance in instances:
+            print('Bee %s: %s @ %s' % (instance.id, instance.state, instance.ip_address))
+        
+    for i in _get_existing_regions():
+        username, key_name, zone, instance_ids = _read_server_list(i)
+        _check_instances()
 
-    for instance in instances:
-        print('Bee %s: %s @ %s' % (instance.id, instance.state, instance.ip_address))
-
-def down():
+def down(*mr_zone):
     """
     Shutdown the load testing server.
     """
-    username, key_name, zone, instance_ids = _read_server_list()
+    def _check_to_down_it():
+        '''check if we can bring down some bees'''
+        username, key_name, zone, instance_ids = _read_server_list(region)
 
-    if not instance_ids:
-        print('No bees have been mobilized.')
-        return
+        if not instance_ids:
+            print('No bees have been mobilized.')
+            return
 
-    print('Connecting to the hive.')
+        print('Connecting to the hive.')
 
-    ec2_connection = boto.ec2.connect_to_region(_get_region(zone))
+        ec2_connection = boto.ec2.connect_to_region(_get_region(zone))
 
-    print('Calling off the swarm.')
+        print('Calling off the swarm for {}.').format(region)
 
-    terminated_instance_ids = ec2_connection.terminate_instances(
-        instance_ids=instance_ids)
+        terminated_instance_ids = ec2_connection.terminate_instances(
+            instance_ids=instance_ids)
 
-    print('Stood down %i bees.' % len(terminated_instance_ids))
+        print('Stood down %i bees.' % len(terminated_instance_ids))
 
-    _delete_server_list()
+        _delete_server_list(zone)
+
+
+    if len(mr_zone) > 0:
+        username, key_name, zone, instance_ids = _read_server_list(mr_zone[-1])
+    else:
+        for region in _get_existing_regions():
+            _check_to_down_it()
 
 def _wait_for_spot_request_fulfillment(conn, requests, fulfilled_requests = []):
     """
@@ -598,7 +614,7 @@ def attack(url, n, c, **options):
     """
     Test the root url of this site.
     """
-    username, key_name, zone, instance_ids = _read_server_list()
+    username, key_name, zone, instance_ids = _read_server_list(options.get('zone'))
     headers = options.get('headers', '')
     contenttype = options.get('contenttype', '')
     csv_filename = options.get("csv_filename", '')
@@ -740,7 +756,8 @@ def hlx_attack(url, n, c, **options):
     """
     Test the root url of this site.
     """
-    username, key_name, zone, instance_ids = _read_server_list()
+    print options.get('zone')
+    username, key_name, zone, instance_ids = _read_server_list(options.get('zone'))
     headers = options.get('headers', '')
     contenttype = options.get('contenttype', '')
     csv_filename = options.get("csv_filename", '')
@@ -1227,3 +1244,18 @@ def _hlx_print_results(summarized_results):
         print('Mission Assessment: Target severely compromised.')
     else:
         print('Mission Assessment: Swarm annihilated target.')
+
+def _get_new_state_file_name(zone):
+    ''' take zone and return multi regional bee file, 
+    from ~/.bees to ~/.bees.${region}'''
+    return STATE_FILENAME+'.'+zone
+
+def _get_existing_regions():
+    '''return a list of zone name strings from looking at 
+    existing region ~/.bees.* files'''
+    existing_regions = []
+    possible_files = os.listdir(os.path.expanduser('~'))
+    for f in possible_files:
+        something= re.search(r'\.bees\.(.*)', f)
+        existing_regions.append( something.group(1)) if something else "no"
+    return existing_regions

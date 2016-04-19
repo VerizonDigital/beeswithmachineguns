@@ -30,6 +30,8 @@ try:
 except ImportError:
     from urlparse import urlparse
 from optparse import OptionParser, OptionGroup
+import threading
+import time
 
 def parse_options():
     """
@@ -162,6 +164,10 @@ commands:
         if not options.url:
             parser.error('To run an attack you need to specify a url with -u')
 
+        regions_list = []
+        for region in bees._get_existing_regions():
+                regions_list.append(region)
+
         # urlparse needs a scheme in the url. ab doesn't, so add one just for the sake of parsing.
         # urlparse('google.com').path == 'google.com' and urlparse('google.com').netloc == '' -> True
         parsed = urlparse(options.url) if '://' in options.url else urlparse('http://'+options.url)
@@ -182,11 +188,23 @@ commands:
             seconds=options.seconds,
             rate=options.rate,
             long_output=options.long_output
+            
         )
         if options.hlx:
-            bees.hlx_attack(options.url, options.number, options.concurrent, **additional_options)
+            for region in regions_list:
+                additional_options['zone'] = region
+                threading.Thread(target=bees.hlx_attack, args=(options.url, options.number, options.concurrent),
+                    kwargs=additional_options).start()
+                time.sleep(0.2)
         else:
-            bees.attack(options.url, options.number, options.concurrent, **additional_options)
+            for region in regions_list:
+                additional_options['zone'] = region
+                # bees.attack(options.url, options.number, 
+                #             options.concurrent, **additional_options)
+                threading.Thread(target=bees.attack, args=(options.url, options.number, 
+                    options.concurrent), kwargs=additional_options).start()
+                time.sleep(0.2)
+
     elif command == 'down':
         bees.down()
     elif command == 'report':
