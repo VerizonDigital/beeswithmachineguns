@@ -138,7 +138,7 @@ commands:
                             help='BASIC authentication credentials, format auth-username:password (default: None).')
     attack_group.add_option('-j', '--hlx', metavar="HLX_COMMANDS", 
                             action='store_true', dest='hlx', 
-                            help="use hlx/hurl")
+                            help="use hlx")
     attack_group.add_option('-o', '--long_output', metavar="LONG_OUTPUT", 
                             action='store_true', dest='long_output', 
                             help="display hurl output")

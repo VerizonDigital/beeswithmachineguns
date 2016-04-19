@@ -882,7 +882,6 @@ def hlx_attack(url, n, c, **options):
     pool = Pool(len(params))
     results = pool.map(_hlx_attack, params)
 
-    ###Commenting for now until can get to output section
     
     summarized_results = _hlx_summarize_results(results, params, csv_filename)
     print('Offensive complete.')
@@ -891,13 +890,13 @@ def hlx_attack(url, n, c, **options):
 
     print('The swarm is awaiting new orders.')
 
-    # if 'performance_accepted' in summarized_results:
-    #     if summarized_results['performance_accepted'] is False:
-    #         print("Your targets performance tests did not meet our standard.")
-    #         sys.exit(1)
-    #     else:
-    #         print('Your targets performance tests meet our standards, the Queen sends her regards.')
-    #         sys.exit(0)
+    if 'performance_accepted' in summarized_results:
+        if summarized_results['performance_accepted'] is False:
+            print("Your targets performance tests did not meet our standard.")
+            sys.exit(1)
+        else:
+            print('Your targets performance tests meet our standards, the Queen sends her regards.')
+            sys.exit(0)
 
 
 def _hlx_attack(params):
@@ -1123,35 +1122,10 @@ def _hlx_summarize_results(results, params, csv_filename):
     complete_results = [r['connect-ms-mean'] for r in summarized_results['complete_bees']]
     summarized_results['connect-ms-mean'] = sum(complete_results) / summarized_results['num_complete_bees']
 
-    
-
-#     complete_results = [r['1st-resp-ms-max'] for r in summarized_results['complete_bees']]
-#     summarized_results['1st-resp-ms-max'] = sum(complete_results)
-    
-#     complete_results = [r['failed_requests'] for r in summarized_results['complete_bees']]
-#     summarized_results['total_failed_requests'] = sum(complete_results)
-
-#     complete_results = [r['failed_requests_connect'] for r in summarized_results['complete_bees']]
-#     summarized_results['total_failed_requests_connect'] = sum(complete_results)
-
-#     complete_results = [r['failed_requests_receive'] for r in summarized_results['complete_bees']]
-#     summarized_results['total_failed_requests_receive'] = sum(complete_results)
-
-#     complete_results = [r['failed_requests_length'] for r in summarized_results['complete_bees']]
-#     summarized_results['total_failed_requests_length'] = sum(complete_results)
-
-#     complete_results = [r['failed_requests_exceptions'] for r in summarized_results['complete_bees']]
-#     summarized_results['total_failed_requests_exceptions'] = sum(complete_results)
-    
-#     complete_results = [r['requests_per_second'] for r in summarized_results['complete_bees']]
-#     summarized_results['mean_requests'] = sum(complete_results)
-
-   
-#     complete_results = [r['ms_per_request'] for r in summarized_results['complete_bees']]
-#     if summarized_results['num_complete_bees'] == 0:
-#         summarized_results['mean_response'] = "no bees are complete"
-#     else:
-#         summarized_results['mean_response'] = sum(complete_results) / summarized_results['num_complete_bees']
+    if summarized_results['num_complete_bees'] == 0:
+        summarized_results['mean_response'] = "no bees are complete"
+    else:
+        summarized_results['mean_response'] = sum(complete_results) / summarized_results['num_complete_bees']
 
     complete_results = [r['connect-ms-mean'] for r in summarized_results['complete_bees']]
     if summarized_results['num_complete_bees'] == 0:
@@ -1212,32 +1186,24 @@ def _hlx_print_results(summarized_results):
     print('     connect-ms-mean:\t\t%f' % summarized_results['connect-ms-mean'])
     print('\nResponse Codes:')
 
-
-#     print('     Complete requests:\t\t%i' % summarized_results['total_complete_requests'])
-
-#     print('     Failed requests:\t\t%i' % summarized_results['total_failed_requests'])
-#     print('          connect:\t\t%i' % summarized_results['total_failed_requests_connect'])
-#     print('          receive:\t\t%i' % summarized_results['total_failed_requests_receive'])
-#     print('          length:\t\t%i' % summarized_results['total_failed_requests_length'])
-#     print('          exceptions:\t\t%i' % summarized_results['total_failed_requests_exceptions'])
-#     print('     Response Codes:')
     print('     2xx:\t\t\t%i' % summarized_results['total_number_of_200s'])
     print('     3xx:\t\t\t%i' % summarized_results['total_number_of_300s'])
     print('     4xx:\t\t\t%i' % summarized_results['total_number_of_400s'])
     print('     5xx:\t\t\t%i' % summarized_results['total_number_of_500s'])
+    print
 #     print('     Requests per second:\t%f [#/sec] (mean of bees)' % summarized_results['mean_requests'])
-#     if 'rps_bounds' in summarized_results and summarized_results['rps_bounds'] is not None:
-#         print('     Requests per second:\t%f [#/sec] (upper bounds)' % summarized_results['rps_bounds'])
+    if 'rps_bounds' in summarized_results and summarized_results['rps_bounds'] is not None:
+        print('     Requests per second:\t%f [#/sec] (upper bounds)' % summarized_results['rps_bounds'])
 
-#     print('     Time per request:\t\t%f [ms] (mean of bees)' % summarized_results['mean_response'])
-#     if 'tpr_bounds' in summarized_results and summarized_results['tpr_bounds'] is not None:
-#         print('     Time per request:\t\t%f [ms] (lower bounds)' % summarized_results['tpr_bounds'])
+    # print('     Time per request:\t\t%f [ms] (mean of bees)' % summarized_results['mean_response'])
+    if 'tpr_bounds' in summarized_results and summarized_results['tpr_bounds'] is not None:
+        print('     Time per request:\t\t%f [ms] (lower bounds)' % summarized_results['tpr_bounds'])
 
-#     print('     50%% responses faster than:\t%f [ms]' % summarized_results['request_time_cdf'][49])
-#     print('     90%% responses faster than:\t%f [ms]' % summarized_results['request_time_cdf'][89])
+    # print('     50%% responses faster than:\t%f [ms]' % summarized_results['request_time_cdf'][49])
+    # print('     90%% responses faster than:\t%f [ms]' % summarized_results['request_time_cdf'][89])
 
-#     if 'performance_accepted' in summarized_results:
-#         print('     Performance check:\t\t%s' % summarized_results['performance_accepted'])
+    if 'performance_accepted' in summarized_results:
+        print('     Performance check:\t\t%s' % summarized_results['performance_accepted'])
 
     if summarized_results['mean_response'] < 500:
         print('Mission Assessment: Target crushed bee offensive.')
