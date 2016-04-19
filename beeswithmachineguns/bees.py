@@ -748,9 +748,9 @@ def attack(url, n, c, **options):
             print('Your targets performance tests meet our standards, the Queen sends her regards.')
             sys.exit(0)
 
-#############################################
-# HLX version methods, cleaner to do this way than modifying existing functions built for AB
-##############################################
+#############################
+### HLX version methods, ###
+#############################
 
 def hlx_attack(url, n, c, **options):
     """
@@ -931,7 +931,7 @@ def _hlx_attack(params):
                     options += ' -H "%s"' % h.strip()
 
         if params['contenttype'] is not '':
-            options += ' -H  \"Content-Type : %s\"' % params['contenttype']
+            options += ' -H \"Content-Type : %s\"' % params['contenttype']
             
         stdin, stdout, stderr = client.exec_command('mktemp')
         # paramiko's read() returns bytes which need to be converted back to a str
@@ -950,8 +950,8 @@ def _hlx_attack(params):
 
         if params['cookies'] is not '':
             options += ' -H \"Cookie: %s;\"' % params['cookies']
-        else:
-            options += ' -H \"Cookie: sessionid=NotARealSessionID\"'
+        # else:
+        #     options += ' -H \"Cookie: sessionid=NotARealSessionID\"'
 
         if params['basic_auth'] is not '':
             options += ' -H \"Authorization : Basic %s\"' % params['basic_auth']
@@ -968,7 +968,6 @@ def _hlx_attack(params):
         params['options'] = options
       
         hurl_command = 'hurl %(url)s -p %(concurrent_requests)s %(options)s -j' % params
-        #print(hurl_command)
         stdin, stdout, stderr = client.exec_command(hurl_command)
 
         response = defaultdict(int)
@@ -1018,10 +1017,16 @@ def _hlx_attack(params):
                 response[k] = v
                 
             #check if user wants output for seperate instances and display if so   
+            long_out_container=[]
             if params['long_output']:
                 print hurl_command
                 print "\n", params['instance_id'] + "\n",params['instance_name'] + "\n" , hurl_results
                 _long_output()    
+                # long_out_container.append(hurl_command)
+                # long_out_container.append(params['instance_id'] + "\n",params['instance_name'] + "\n" , hurl_results)
+                # long_out_container.append(_long_output)
+            # for i in long_out_container:
+            #     print i
         except:
             print("Please check the url entered, also possible no requests were successful Line: 1032")
             #return None
@@ -1065,9 +1070,6 @@ def _hlx_summarize_results(results, params, csv_filename):
     summarized_results['num_timeout_bees'] = len(summarized_results['timeout_bees'])
     summarized_results['num_exception_bees'] = len(summarized_results['exception_bees'])
     summarized_results['num_complete_bees'] = len(summarized_results['complete_bees'])
-
-#     complete_results = [r['complete_requests'] for r in summarized_results['complete_bees']]
-#     summarized_results['total_complete_requests'] = sum(complete_results)
     
     complete_results = [r['fetches'] for r in summarized_results['complete_bees']]
     summarized_results['total_complete_requests'] = sum(complete_results)
