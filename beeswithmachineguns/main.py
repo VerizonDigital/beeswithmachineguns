@@ -32,6 +32,7 @@ except ImportError:
 from optparse import OptionParser, OptionGroup
 import threading
 import time
+import sys
 
 def parse_options():
     """
@@ -151,6 +152,7 @@ commands:
         parser.error('Please enter a command.')
 
     command = args[0]
+    delay = 0.2
 
     if command == 'up':
         if not options.key:
@@ -158,8 +160,30 @@ commands:
 
         if options.group == 'default':
             print('New bees will use the "default" EC2 security group. Please note that port 22 (SSH) is not normally open on this group. You will need to use to the EC2 tools to open it before you will be able to attack.')
-
-        bees.up(options.servers, options.group, options.zone, options.instance, options.type, options.login, options.key, options.subnet, options.bid)
+        zone_len = options.zone.split(',')
+        if len(zone_len) > 1:
+            if len(options.instance.split(',')) != len(zone_len):
+                print("Your instance count does not match zone count")
+                sys.exit(1)
+            else:
+                ami_list = [a for a in options.instance.split(',')]
+                zone_list = [z for z in zone_len]
+                # for each ami and zone set zone and instance
+                for tup_val in zip(ami_list, zone_list):
+                    options.instance, options.zone = tup_val
+                    threading.Thread(target=bees.up, args=(options.servers, options.group,
+                                                            options.zone, options.instance, 
+                                                            options.type,options.login,
+                                                            options.key, options.subnet,
+                                                            options.bid)).start()
+                    time.sleep(delay)
+                    # bees.up(options.servers, options.group,
+                    #          options.zone, options.instance, 
+                    #          options.type,options.login, 
+                    #          options.key, options.subnet, 
+                    #          options.bid)
+        else:
+            bees.up(options.servers, options.group, options.zone, options.instance, options.type, options.login, options.key, options.subnet, options.bid)
     elif command == 'attack':
         if not options.url:
             parser.error('To run an attack you need to specify a url with -u')
@@ -195,15 +219,13 @@ commands:
                 additional_options['zone'] = region
                 threading.Thread(target=bees.hlx_attack, args=(options.url, options.number, options.concurrent),
                     kwargs=additional_options).start()
-                time.sleep(0.2)
+                time.sleep(delay)
         else:
             for region in regions_list:
                 additional_options['zone'] = region
-                # bees.attack(options.url, options.number, 
-                #             options.concurrent, **additional_options)
                 threading.Thread(target=bees.attack, args=(options.url, options.number, 
                     options.concurrent), kwargs=additional_options).start()
-                time.sleep(0.2)
+                time.sleep(delay)
 
     elif command == 'down':
         bees.down()
