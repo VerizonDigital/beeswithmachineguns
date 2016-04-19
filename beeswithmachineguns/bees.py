@@ -1183,16 +1183,13 @@ def _hlx_print_results(summarized_results):
     print('     4xx:\t\t\t%i' % summarized_results['total_number_of_400s'])
     print('     5xx:\t\t\t%i' % summarized_results['total_number_of_500s'])
     print
-    #print('     Requests per second:\t%f [#/sec] (mean of bees)' % summarized_results['mean_requests'])
+    
     if 'rps_bounds' in summarized_results and summarized_results['rps_bounds'] is not None:
         print('     Requests per second:\t%f [#/sec] (upper bounds)' % summarized_results['rps_bounds'])
 
-    # print('     Time per request:\t\t%f [ms] (mean of bees)' % summarized_results['mean_response'])
+    
     if 'tpr_bounds' in summarized_results and summarized_results['tpr_bounds'] is not None:
         print('     Time per request:\t\t%f [ms] (lower bounds)' % summarized_results['tpr_bounds'])
-
-    # print('     50%% responses faster than:\t%f [ms]' % summarized_results['request_time_cdf'][49])
-    # print('     90%% responses faster than:\t%f [ms]' % summarized_results['request_time_cdf'][89])
 
     if 'performance_accepted' in summarized_results:
         print('     Performance check:\t\t%s' % summarized_results['performance_accepted'])
