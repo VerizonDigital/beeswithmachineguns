@@ -42,7 +42,7 @@
         },
         {
             "RegionName": "us-west-1",
-            "AMI" : "ami-9342c0e0",
+            "AMI" : "ami-cd2c53ad",
             "Endpoint": "ec2.us-west-1.amazonaws.com"
         },
         {
