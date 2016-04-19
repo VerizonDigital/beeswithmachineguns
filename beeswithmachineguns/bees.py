@@ -829,7 +829,8 @@ def hlx_attack(url, n, c, **options):
             'basic_auth': options.get('basic_auth'),
             'seconds': options.get('seconds'),
             'rate' : options.get('rate'),
-            'long_output' : options.get('long_output')
+            'long_output' : options.get('long_output'),
+            'responses_per' : options.get('responses_per')
         })
 
   
@@ -962,6 +963,9 @@ def _hlx_attack(params):
         if params['rate']:
             options += ' -A %d' % params['rate']
 
+        if params['responses_per']:
+            options += ' -L'
+
         params['options'] = options
       
         hurl_command = 'hurl %(url)s -p %(concurrent_requests)s %(options)s -j' % params
@@ -1016,6 +1020,7 @@ def _hlx_attack(params):
                 
             #check if user wants output for seperate instances and display if so   
             if params['long_output']:
+                print hurl_command
                 print "\n", params['instance_id'] + "\n",params['instance_name'] + "\n" , hurl_results
                 _long_output()    
         except:

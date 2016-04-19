@@ -138,10 +138,13 @@ commands:
                             help='BASIC authentication credentials, format auth-username:password (default: None).')
     attack_group.add_option('-j', '--hlx', metavar="HLX_COMMANDS", 
                             action='store_true', dest='hlx', 
-                            help="hlx options")
+                            help="use hlx/hurl")
     attack_group.add_option('-o', '--long_output', metavar="LONG_OUTPUT", 
                             action='store_true', dest='long_output', 
                             help="display hurl output")
+    attack_group.add_option('-L', '--responses_per', metavar="RESPONSE_PER", 
+                            action='store_true', dest='responses_per', 
+                            help="HLX only: Display http(s) response codes per interval instead of request statistics")
     
 
     parser.add_option_group(attack_group)
@@ -177,11 +180,7 @@ commands:
                                                             options.key, options.subnet,
                                                             options.bid)).start()
                     time.sleep(delay)
-                    # bees.up(options.servers, options.group,
-                    #          options.zone, options.instance, 
-                    #          options.type,options.login, 
-                    #          options.key, options.subnet, 
-                    #          options.bid)
+                   
         else:
             bees.up(options.servers, options.group, options.zone, options.instance, options.type, options.login, options.key, options.subnet, options.bid)
     elif command == 'attack':
@@ -211,7 +210,8 @@ commands:
             hlx=options.hlx,
             seconds=options.seconds,
             rate=options.rate,
-            long_output=options.long_output
+            long_output=options.long_output,
+            responses_per=options.responses_per
             
         )
         if options.hlx:
