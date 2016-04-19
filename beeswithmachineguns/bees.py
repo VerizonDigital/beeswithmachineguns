@@ -950,8 +950,6 @@ def _hlx_attack(params):
 
         if params['cookies'] is not '':
             options += ' -H \"Cookie: %s;\"' % params['cookies']
-        # else:
-        #     options += ' -H \"Cookie: sessionid=NotARealSessionID\"'
 
         if params['basic_auth'] is not '':
             options += ' -H \"Authorization : Basic %s\"' % params['basic_auth']
@@ -1022,19 +1020,12 @@ def _hlx_attack(params):
                 print hurl_command
                 print "\n", params['instance_id'] + "\n",params['instance_name'] + "\n" , hurl_results
                 _long_output()    
-                # long_out_container.append(hurl_command)
-                # long_out_container.append(params['instance_id'] + "\n",params['instance_name'] + "\n" , hurl_results)
-                # long_out_container.append(_long_output)
-            # for i in long_out_container:
-            #     print i
+                
         except:
             print("Please check the url entered, also possible no requests were successful Line: 1032")
-            #return None
+            return None
         finally:
             return response
-
-        
-
         
         print hurl_json['response-codes']
         response['request_time_cdf'] = []
@@ -1159,7 +1150,6 @@ def _hlx_summarize_results(results, params, csv_filename):
 
 
 def _hlx_print_results(summarized_results):
-#     pdb.set_trace()
     """
     Print summarized load-testing results.
     """
@@ -1193,7 +1183,7 @@ def _hlx_print_results(summarized_results):
     print('     4xx:\t\t\t%i' % summarized_results['total_number_of_400s'])
     print('     5xx:\t\t\t%i' % summarized_results['total_number_of_500s'])
     print
-#     print('     Requests per second:\t%f [#/sec] (mean of bees)' % summarized_results['mean_requests'])
+    #print('     Requests per second:\t%f [#/sec] (mean of bees)' % summarized_results['mean_requests'])
     if 'rps_bounds' in summarized_results and summarized_results['rps_bounds'] is not None:
         print('     Requests per second:\t%f [#/sec] (upper bounds)' % summarized_results['rps_bounds'])
 
