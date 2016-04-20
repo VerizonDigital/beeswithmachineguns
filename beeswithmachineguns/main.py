@@ -126,7 +126,7 @@ commands:
                             action='store', dest='seconds', type='int', default=60,
                             help= "hurl only: The number of total seconds to attack the target (default: 60).")
     attack_group.add_option('-M', '--rate', metavar="RATE", nargs=1,
-                            action='store', dest='rate', type='int', 
+                            action='store', dest='rate', type='int',
                             help= "hurl only: Max Request Rate.")
 
     # Optional
@@ -136,16 +136,16 @@ commands:
                             help='The lower bounds for request per second. If this option is passed and the target is above the value a 1 will be returned with the report details (default: None).')
     attack_group.add_option('-A', '--basic_auth', metavar='basic_auth', nargs=1, action='store', dest='basic_auth', default='', type='string',
                             help='BASIC authentication credentials, format auth-username:password (default: None).')
-    attack_group.add_option('-j', '--hurl', metavar="HURL_COMMANDS", 
-                            action='store_true', dest='hurl', 
+    attack_group.add_option('-j', '--hurl', metavar="HURL_COMMANDS",
+                            action='store_true', dest='hurl',
                             help="use hurl")
-    attack_group.add_option('-o', '--long_output', metavar="LONG_OUTPUT", 
-                            action='store_true', dest='long_output', 
+    attack_group.add_option('-o', '--long_output', metavar="LONG_OUTPUT",
+                            action='store_true', dest='long_output',
                             help="display hurl output")
-    attack_group.add_option('-L', '--responses_per', metavar="RESPONSE_PER", 
-                            action='store_true', dest='responses_per', 
+    attack_group.add_option('-L', '--responses_per', metavar="RESPONSE_PER",
+                            action='store_true', dest='responses_per',
                             help="hurl only: Display http(s) response codes per interval instead of request statistics")
-    
+
 
     parser.add_option_group(attack_group)
 
@@ -175,12 +175,12 @@ commands:
                 for tup_val in zip(ami_list, zone_list):
                     options.instance, options.zone = tup_val
                     threading.Thread(target=bees.up, args=(options.servers, options.group,
-                                                            options.zone, options.instance, 
+                                                            options.zone, options.instance,
                                                             options.type,options.login,
                                                             options.key, options.subnet,
                                                             options.bid)).start()
                     time.sleep(delay)
-                   
+
         else:
             bees.up(options.servers, options.group, options.zone, options.instance, options.type, options.login, options.key, options.subnet, options.bid)
     elif command == 'attack':
@@ -212,7 +212,7 @@ commands:
             rate=options.rate,
             long_output=options.long_output,
             responses_per=options.responses_per
-            
+
         )
         if options.hurl:
             for region in regions_list:
@@ -223,7 +223,7 @@ commands:
         else:
             for region in regions_list:
                 additional_options['zone'] = region
-                threading.Thread(target=bees.attack, args=(options.url, options.number, 
+                threading.Thread(target=bees.attack, args=(options.url, options.number,
                     options.concurrent), kwargs=additional_options).start()
                 time.sleep(delay)
 
