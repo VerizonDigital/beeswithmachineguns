@@ -262,7 +262,7 @@ def report():
 
         for instance in instances:
             print('Bee %s: %s @ %s' % (instance.id, instance.state, instance.ip_address))
-        
+
     for i in _get_existing_regions():
         username, key_name, zone, instance_ids = _read_server_list(i)
         _check_instances()
@@ -833,7 +833,6 @@ def hurl_attack(url, n, c, **options):
             'responses_per' : options.get('responses_per')
         })
 
-  
     print('Stinging URL so it will be cached for the attack.')
 
     request = Request(url)
