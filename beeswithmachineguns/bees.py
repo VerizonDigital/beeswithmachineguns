@@ -105,15 +105,15 @@ def _get_security_group_id(connection, security_group_name, subnet):
     if not security_group_name:
         print('The bees need a security group to run under. Need to open a port from where you are to the target subnet.')
         return
-        
+
     security_groups = connection.get_all_security_groups(filters={'group-name': [security_group_name]})
-        
+
     if not security_groups:
         print('The bees need a security group to run under. The one specified was not found.')
         return
-        
+
     group = security_groups[0] if security_groups else None
-    
+
     return group.id
 
 # Methods
@@ -122,7 +122,7 @@ def up(count, group, zone, image_id, instance_type, username, key_name, subnet, 
     """
     Startup the load testing server.
     """
-    
+
     existing_username, existing_key_name, existing_zone, instance_ids = _read_server_list(zone)
 
     count = int(count)
@@ -171,10 +171,10 @@ def up(count, group, zone, image_id, instance_type, username, key_name, subnet, 
 
     groupId = group if subnet is None else _get_security_group_id(ec2_connection, group, subnet)
     print("GroupId found: %s" % groupId)
-    
+
     placement = None if 'gov' in zone else zone
     print("Placement: %s" % placement)
-    
+
     if bid:
         print('Attempting to call up %i spot bees, this can take a while...' % count)
 
@@ -205,7 +205,7 @@ def up(count, group, zone, image_id, instance_type, username, key_name, subnet, 
                 instance_type=instance_type,
                 placement=placement,
                 subnet_id=subnet)
-                
+
         except boto.exception.EC2ResponseError as e:
             print("Unable to call bees:", e.message)
             print("Is your sec group available in this region?")
@@ -352,7 +352,7 @@ def _attack(params):
 
         if params['contenttype'] is not '':
             options += ' -T %s' % params['contenttype']
-            
+
         stdin, stdout, stderr = client.exec_command('mktemp')
         # paramiko's read() returns bytes which need to be converted back to a str
         params['csv_filename'] = IS_PY2 and stdout.read().strip() or stdout.read().decode('utf-8').strip()
@@ -881,10 +881,10 @@ def hurl_attack(url, n, c, **options):
     pool = Pool(len(params))
     results = pool.map(_hurl_attack, params)
 
-    
+
     summarized_results = _hurl_summarize_results(results, params, csv_filename)
     print('Offensive complete.')
-   
+
     _hurl_print_results(summarized_results)
 
     print('The swarm is awaiting new orders.')
@@ -931,7 +931,7 @@ def _hurl_attack(params):
 
         if params['contenttype'] is not '':
             options += ' -H \"Content-Type : %s\"' % params['contenttype']
-            
+
         stdin, stdout, stderr = client.exec_command('mktemp')
         # paramiko's read() returns bytes which need to be converted back to a str
         params['csv_filename'] = IS_PY2 and stdout.read().strip() or stdout.read().decode('utf-8').strip()
@@ -963,15 +963,15 @@ def _hurl_attack(params):
             options += ' -L'
 
         params['options'] = options
-      
+
         hurl_command = 'hurl %(url)s -p %(concurrent_requests)s %(options)s -j' % params
         stdin, stdout, stderr = client.exec_command(hurl_command)
 
         response = defaultdict(int)
-        
+
         # paramiko's read() returns bytes which need to be converted back to a str
         hurl_results = IS_PY2 and stdout.read() or stdout.read().decode('utf-8')
-        
+
         #print output for each instance if -o/--long_output is supplied
         def _long_output():
             '''if long_output option,.. display info per bee instead of summarized version'''
@@ -979,7 +979,7 @@ def _hurl_attack(params):
             singletab=()
             doubletabs=('seconds', 'connect-ms-min',
                        'fetches','bytes-per-sec',
-                       'end2end-ms-min', 
+                       'end2end-ms-min',
                        'max-parallel', 'response-codes',
                        'end2end-ms-max', 'connect-ms-max' )
             trippletab=('bytes')
@@ -1000,11 +1000,11 @@ def _hurl_attack(params):
                         tabspace='\t'
                     print("{}:{}{}").format(k, tabspace, v)
                 print("\n")
-                
+
             except:
                 print("Please check the url entered, also possible no requests were successful Line: 1018")
                 return None
-            
+
 
         #create the response dict to return to hurl_attack()
         stdin, stdout, stderr = client.exec_command('cat %(csv_filename)s' % params)
@@ -1012,21 +1012,21 @@ def _hurl_attack(params):
             hurl_json = dict(json.loads(stdout.read().decode('utf-8')))
             for k ,v in hurl_json.items():
                 response[k] = v
-                
-            #check if user wants output for seperate instances and Sdisplay if so   
+
+            #check if user wants output for seperate instances and Sdisplay if so
             long_out_container=[]
             if params['long_output']:
                 print(hurl_command)
                 print "\n", params['instance_id'] + "\n",params['instance_name'] + "\n" , hurl_results
                 _long_output()
-                time.sleep(.02)    
-                
+                time.sleep(.02)
+
         except:
             print("Please check the url entered, also possible no requests were successful Line: 1032")
             return None
         finally:
             return response
-        
+
         print hurl_json['response-codes']
         response['request_time_cdf'] = []
         for row in csv.DictReader(stdout):
@@ -1035,7 +1035,7 @@ def _hurl_attack(params):
         if not response['request_time_cdf']:
             print('Bee %i lost sight of the target (connection timed out reading csv).' % params['i'])
             return None
-        
+
         print('Bee %i is out of ammo.' % params['i'])
 
         client.close()
@@ -1047,9 +1047,9 @@ def _hurl_attack(params):
         traceback.print_exc()
         print()
         raise e
-        
+
 def _hurl_summarize_results(results, params, csv_filename):
-   
+
     #summarized_results = dict()
     summarized_results = defaultdict(int)
     summarized_results['timeout_bees'] = [r for r in results if r is None]
@@ -1061,7 +1061,7 @@ def _hurl_summarize_results(results, params, csv_filename):
     summarized_results['num_timeout_bees'] = len(summarized_results['timeout_bees'])
     summarized_results['num_exception_bees'] = len(summarized_results['exception_bees'])
     summarized_results['num_complete_bees'] = len(summarized_results['complete_bees'])
-    
+
     complete_results = [r['fetches'] for r in summarized_results['complete_bees']]
     summarized_results['total_complete_requests'] = sum(complete_results)
 
@@ -1081,37 +1081,37 @@ def _hurl_summarize_results(results, params, csv_filename):
 
     complete_results = [r['bytes'] for r in summarized_results['complete_bees']]
     summarized_results['total_bytes'] = sum(complete_results)
-    
+
     complete_results = [r['seconds'] for r in summarized_results['complete_bees']]
     summarized_results['seconds'] = max(complete_results)
-    
+
     complete_results = [r['connect-ms-max'] for r in summarized_results['complete_bees']]
     summarized_results['connect-ms-max'] = max(complete_results)
-    
+
     complete_results = [r['1st-resp-ms-max'] for r in summarized_results['complete_bees']]
     summarized_results['1st-resp-ms-max'] = max(complete_results)
-    
+
     complete_results = [r['1st-resp-ms-mean'] for r in summarized_results['complete_bees']]
     summarized_results['1st-resp-ms-mean'] = sum(complete_results) / summarized_results['num_complete_bees']
-    
+
     complete_results = [r['fetches-per-sec'] for r in summarized_results['complete_bees']]
     summarized_results['fetches-per-sec'] = sum(complete_results) / summarized_results['num_complete_bees']
-    
+
     complete_results = [r['fetches'] for r in summarized_results['complete_bees']]
-    summarized_results['total-fetches'] = sum(complete_results) 
-    
+    summarized_results['total-fetches'] = sum(complete_results)
+
     complete_results = [r['connect-ms-min'] for r in summarized_results['complete_bees']]
-    summarized_results['connect-ms-min'] = min(complete_results) 
-    
+    summarized_results['connect-ms-min'] = min(complete_results)
+
     complete_results = [r['bytes-per-sec'] for r in summarized_results['complete_bees']]
     summarized_results['bytes-per-second-mean'] = sum(complete_results) / summarized_results['num_complete_bees']
-    
+
     complete_results = [r['end2end-ms-min'] for r in summarized_results['complete_bees']]
     summarized_results['end2end-ms-min'] = sum(complete_results) / summarized_results['num_complete_bees']
-    
+
     complete_results = [r['mean-bytes-per-conn'] for r in summarized_results['complete_bees']]
     summarized_results['mean-bytes-per-conn'] = sum(complete_results) / summarized_results['num_complete_bees']
-    
+
     complete_results = [r['connect-ms-mean'] for r in summarized_results['complete_bees']]
     summarized_results['connect-ms-mean'] = sum(complete_results) / summarized_results['num_complete_bees']
 
@@ -1126,7 +1126,7 @@ def _hurl_summarize_results(results, params, csv_filename):
     else:
         summarized_results['mean_response'] = sum(complete_results) / summarized_results['num_complete_bees']
 
-    
+
     summarized_results['tpr_bounds'] = params[0]['tpr']
     summarized_results['rps_bounds'] = params[0]['rps']
 
@@ -1183,11 +1183,11 @@ def _hurl_print_results(summarized_results):
     print('     4xx:\t\t\t%i' % summarized_results['total_number_of_400s'])
     print('     5xx:\t\t\t%i' % summarized_results['total_number_of_500s'])
     print
-    
+
     if 'rps_bounds' in summarized_results and summarized_results['rps_bounds'] is not None:
         print('     Requests per second:\t%f [#/sec] (upper bounds)' % summarized_results['rps_bounds'])
 
-    
+
     if 'tpr_bounds' in summarized_results and summarized_results['tpr_bounds'] is not None:
         print('     Time per request:\t\t%f [ms] (lower bounds)' % summarized_results['tpr_bounds'])
 
@@ -1206,12 +1206,12 @@ def _hurl_print_results(summarized_results):
         print('Mission Assessment: Swarm annihilated target.')
 
 def _get_new_state_file_name(zone):
-    ''' take zone and return multi regional bee file, 
+    ''' take zone and return multi regional bee file,
     from ~/.bees to ~/.bees.${region}'''
     return STATE_FILENAME+'.'+zone
 
 def _get_existing_regions():
-    '''return a list of zone name strings from looking at 
+    '''return a list of zone name strings from looking at
     existing region ~/.bees.* files'''
     existing_regions = []
     possible_files = os.listdir(os.path.expanduser('~'))
