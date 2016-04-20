@@ -124,10 +124,10 @@ commands:
                             help="ContentType header to send to the target of the attack.")
     attack_group.add_option('-S', '--seconds', metavar="SECONDS", nargs=1,
                             action='store', dest='seconds', type='int', default=60,
-                            help= "HLX only: The number of total seconds to attack the target (default: 60).")
+                            help= "hurl only: The number of total seconds to attack the target (default: 60).")
     attack_group.add_option('-M', '--rate', metavar="RATE", nargs=1,
                             action='store', dest='rate', type='int', 
-                            help= "HLX only: Max Request Rate.")
+                            help= "hurl only: Max Request Rate.")
 
     # Optional
     attack_group.add_option('-T', '--tpr', metavar='TPR', nargs=1, action='store', dest='tpr', default=None, type='float',
@@ -136,15 +136,15 @@ commands:
                             help='The lower bounds for request per second. If this option is passed and the target is above the value a 1 will be returned with the report details (default: None).')
     attack_group.add_option('-A', '--basic_auth', metavar='basic_auth', nargs=1, action='store', dest='basic_auth', default='', type='string',
                             help='BASIC authentication credentials, format auth-username:password (default: None).')
-    attack_group.add_option('-j', '--hlx', metavar="HLX_COMMANDS", 
-                            action='store_true', dest='hlx', 
-                            help="use hlx")
+    attack_group.add_option('-j', '--hurl', metavar="HURL_COMMANDS", 
+                            action='store_true', dest='hurl', 
+                            help="use hurl")
     attack_group.add_option('-o', '--long_output', metavar="LONG_OUTPUT", 
                             action='store_true', dest='long_output', 
                             help="display hurl output")
     attack_group.add_option('-L', '--responses_per', metavar="RESPONSE_PER", 
                             action='store_true', dest='responses_per', 
-                            help="HLX only: Display http(s) response codes per interval instead of request statistics")
+                            help="hurl only: Display http(s) response codes per interval instead of request statistics")
     
 
     parser.add_option_group(attack_group)
@@ -207,17 +207,17 @@ commands:
             rps=options.rps,
             basic_auth=options.basic_auth,
             contenttype=options.contenttype,
-            hlx=options.hlx,
+            hurl=options.hurl,
             seconds=options.seconds,
             rate=options.rate,
             long_output=options.long_output,
             responses_per=options.responses_per
             
         )
-        if options.hlx:
+        if options.hurl:
             for region in regions_list:
                 additional_options['zone'] = region
-                threading.Thread(target=bees.hlx_attack, args=(options.url, options.number, options.concurrent),
+                threading.Thread(target=bees.hurl_attack, args=(options.url, options.number, options.concurrent),
                     kwargs=additional_options).start()
                 time.sleep(delay)
         else:

@@ -749,10 +749,10 @@ def attack(url, n, c, **options):
             sys.exit(0)
 
 #############################
-### HLX version methods, ###
+### hurl version methods, ###
 #############################
 
-def hlx_attack(url, n, c, **options):
+def hurl_attack(url, n, c, **options):
     """
     Test the root url of this site.
     """
@@ -880,13 +880,13 @@ def hlx_attack(url, n, c, **options):
     print('Organizing the swarm.')
     # Spin up processes for connecting to EC2 instances
     pool = Pool(len(params))
-    results = pool.map(_hlx_attack, params)
+    results = pool.map(_hurl_attack, params)
 
     
-    summarized_results = _hlx_summarize_results(results, params, csv_filename)
+    summarized_results = _hurl_summarize_results(results, params, csv_filename)
     print('Offensive complete.')
    
-    _hlx_print_results(summarized_results)
+    _hurl_print_results(summarized_results)
 
     print('The swarm is awaiting new orders.')
 
@@ -899,7 +899,7 @@ def hlx_attack(url, n, c, **options):
             sys.exit(0)
 
 
-def _hlx_attack(params):
+def _hurl_attack(params):
     """
     Test the target URL with requests.
 
@@ -1007,19 +1007,20 @@ def _hlx_attack(params):
                 return None
             
 
-        #create the response dict to return to hlx_attack()
+        #create the response dict to return to hurl_attack()
         stdin, stdout, stderr = client.exec_command('cat %(csv_filename)s' % params)
         try:
             hurl_json = dict(json.loads(stdout.read().decode('utf-8')))
             for k ,v in hurl_json.items():
                 response[k] = v
                 
-            #check if user wants output for seperate instances and display if so   
+            #check if user wants output for seperate instances and Sdisplay if so   
             long_out_container=[]
             if params['long_output']:
-                print hurl_command
+                print(hurl_command)
                 print "\n", params['instance_id'] + "\n",params['instance_name'] + "\n" , hurl_results
-                _long_output()    
+                _long_output()
+                time.sleep(.02)    
                 
         except:
             print("Please check the url entered, also possible no requests were successful Line: 1032")
@@ -1048,7 +1049,7 @@ def _hlx_attack(params):
         print()
         raise e
         
-def _hlx_summarize_results(results, params, csv_filename):
+def _hurl_summarize_results(results, params, csv_filename):
    
     #summarized_results = dict()
     summarized_results = defaultdict(int)
@@ -1149,7 +1150,7 @@ def _hlx_summarize_results(results, params, csv_filename):
     return summarized_results
 
 
-def _hlx_print_results(summarized_results):
+def _hurl_print_results(summarized_results):
     """
     Print summarized load-testing results.
     """
