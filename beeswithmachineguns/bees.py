@@ -48,7 +48,6 @@ import boto.ec2
 import boto.exception
 import paramiko
 import json
-import pdb
 from collections import defaultdict
 import time
 from sets import Set
@@ -1077,7 +1076,7 @@ def _hurl_summarize_results(results, params, csv_filename):
                 elif k.startswith('40'):
                     summarized_results['total_number_of_400s']+=float(v)
                 elif k.startswith('50'):
-                    summarized_results['total_number_of_400s']+=float(v)
+                    summarized_results['total_number_of_500s']+=float(v)
 
     complete_results = [r['bytes'] for r in summarized_results['complete_bees']]
     summarized_results['total_bytes'] = sum(complete_results)
