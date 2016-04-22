@@ -1,20 +1,33 @@
 ##Introduction to additions:
   Additions contributed Hurl integration and multi regional testing.
   
-  *hurl* is an http server load tester similar to ab/siege/weighttp/wrk with support for mulithreading, parallelism, ssl, url ranges, and an api-server for querying the running performance statistics.  *hurl* is primarily useful for benchmarking http server applications.
+  *hurl* is an http server load tester similar to ab/siege/weighttp/wrk with support for multithreading, parallelism, ssl, url ranges, and an api-server for querying the running performance statistics.  *hurl* is primarily useful for benchmarking http server applications.
 For more information about *hurl* please visit https://github.com/VerizonDigital/hlx 
 
   Multi regional testing was added so user can call up multiple bees from different regions simultaneously. Users have the ability to “up”, “attack”, and  “down” instances from single command. “regions.json” file is supplied which contains public ami images with hurl pre installed for all regions. 
 
-##What kind of changes were made thats different from the old?
-  Instead of writing bees information into ~/.bees, for each zone recognized in arguments, a new unique bees file. Bees.py modified to read these file. Up, attack, and down functions are run with threads.
+##What kind of changes were made that's different from the old?
+  Instead of writing bees information into a single ~/.bees file, each zone recognized in arguments creates a new unique bees file. Bees.py was modified to read these files. Up, attack, and down functions are run with threads.
 
-##bees up:
+##Motivation
+Having the ability to generate a lot of HTTPS requests from many different regions around the world allows us to better test our platforms and services. This is also real helpful when there are tools that need to be tested for such things as location of requests. 
+
+##example .bees files in user home directory
+```bash
+$ ls ~/.bees* | while read line; do  basename $line;  done
+.bees.ap-southeast-1b
+.bees.eu-west-1b
+.bees.us-west-2b
+
+```
+
+##bees up
   Command line arguments are still the same however to add multiple zones with multiple amis, the values must be comma delimited. The ami and zones must also be in same order for it to work. So for example “-i ami-zone1,ami-zone2,ami-zone3 -z zone1,zone2,zone3”. 
   ```bash
   ./bees up -s 2 -k bees -g bees2 -l ubuntu -i ami-9342c0e0,ami-fd489d
 9e,ami-e8c93e88 -z eu-west-1b,ap-southeast-1b,us-west-2b
   ```
+
 ##bees attack
   In order to use the hurl platform, --hurl or -j must be supplied. Attacks will run concurrently and return a summarized output. The output is summarized per region. More information can be seen if user supplies the -o, --long_output options.
 ```bash
@@ -27,15 +40,6 @@ For more information about *hurl* please visit https://github.com/VerizonDigital
 ./bees down
 ```
 
-
-##example .bees files in user home directory
-```bash
-$ ls ~/.bees* | while read line; do  basename $line;  done
-.bees.ap-southeast-1b
-.bees.eu-west-1b
-.bees.us-west-2b
-
-```
 
 Will demonstrate throughout this doc using 2 bees in 3 different regions : eu-west-1b,ap-southeast-1b,us-west-2b
 
@@ -873,4 +877,6 @@ Calling off the swarm for us-west-2b.
 Stood down 2 bees.
 
 ```
+
+
 
