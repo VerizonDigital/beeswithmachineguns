@@ -9,16 +9,23 @@ For more information about *hurl* please visit https://github.com/VerizonDigital
 ##What kind of changes were made thats different from the old?
   Instead of writing bees information into ~/.bees, for each zone recognized in arguments, a new unique bees file. Bees.py modified to read these file. Up, attack, and down functions are run with threads.
 
-##How to bring up instances in multiple regions:
+##bees up:
   Command line arguments are still the same however to add multiple zones with multiple amis, the values must be comma delimited. The ami and zones must also be in same order for it to work. So for example “-i ami-zone1,ami-zone2,ami-zone3 -z zone1,zone2,zone3”. 
-
-##attack
+  ```bash
+  ./bees up -s 2 -k bees -g bees2 -l ubuntu -i ami-9342c0e0,ami-fd489d
+9e,ami-e8c93e88 -z eu-west-1b,ap-southeast-1b,us-west-2b
+  ```
+##bees attack
   In order to use the hurl platform, --hurl or -j must be supplied. Attacks will run concurrently and return a summarized output. The output is summarized per region. More information can be seen if user supplies the -o, --long_output options.
-
+```bash
+./bees attack --hurl -u $testurl -S20 -M1000 -H "Accept : text/html"
+```
 
 ##bees down
   Bringing down bees is the same and will bring down all bees from all regions
-
+```bash
+./bees down
+```
 
 
 ##example .bees files in user home directory
@@ -145,7 +152,7 @@ Options:
   
 ####A bringing up bees example
 ```bash
-$ ./bees up -s 2 -k bees -g bees2 -i ami-9342c0e0,ami-fd489d
+$ ./bees up -s 2 -k bees -g bees2 -l ubuntu -i ami-9342c0e0,ami-fd489d
 9e,ami-e8c93e88 -z eu-west-1b,ap-southeast-1b,us-west-2b
 Connecting to the hive.
 GroupId found: bees2
