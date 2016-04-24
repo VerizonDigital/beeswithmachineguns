@@ -95,54 +95,72 @@ For complete options type:
 bees -h
 </pre>
 
-h2. Hurl Usage
+h2. Introduction to additions:
 
-##Introduction to additions:
-  Additions contributed Hurl integration and multi regional testing.
-  
+h1. Additions contributed Hurl integration and multi regional testing.
+
+
   *hurl* is an http server load tester similar to ab/siege/weighttp/wrk with support for multithreading, parallelism, ssl, url ranges, and an api-server for querying the running performance statistics.  *hurl* is primarily useful for benchmarking http server applications.
 For more information about *hurl* please visit https://github.com/VerizonDigital/hlx 
 
   Multi regional testing was added so user can call up multiple bees from different regions simultaneously. Users have the ability to “up”, “attack”, and  “down” instances from single command. “regions.json” file is supplied which contains public ami images with hurl pre installed for all regions. 
 
-##What kind of changes were made that's different from the old?
+What kind of changes were made that's different from the old?
   Instead of writing bees information into a single ~/.bees file, each zone recognized in arguments creates a new unique bees file. Bees.py was modified to read these files. Up, attack, and down functions are run with threads.
 
-##Motivation
+h1. Motivation
+
 Having the ability to generate a lot of HTTPS requests from many different regions around the world allows us to better test our platforms and services. This is also real helpful when there are tools that need to be tested for such things as location of requests. 
 
-##example .bees files in user home directory
+example .bees files in user home directory
+
+<pre>
 ```bash
 $ ls ~/.bees* 
 .bees.ap-southeast-1b
 .bees.eu-west-1b
 .bees.us-west-2b
 ```
+</pre>
 
-##bees up
+
+bees up
   Command line arguments are still the same however to add multiple zones with multiple amis, the values must be comma delimited. The ami and zones must also be in same order for it to work. So for example “-i ami-zone1,ami-zone2,ami-zone3 -z zone1,zone2,zone3”. 
+  
+  <pre>
   ```bash
   ./bees up -s 2 -k bees -g bees2 -l ubuntu -i ami-9342c0e0,ami-fd489d
 9e,ami-e8c93e88 -z eu-west-1b,ap-southeast-1b,us-west-2b
   ```
+</pre>
 
-##bees attack
+bees attack
   In order to use the hurl platform, --hurl or -j must be supplied. Attacks will run concurrently and return a summarized output. The output is summarized per region. More information can be seen if user supplies the -o, --long_output options.
+  
+<pre>
 ```bash
 ./bees attack --hurl -u $testurl -S20 -M1000 -H "Accept : text/html"
 ```
+</pre>
 
-##bees down
+bees down
   Bringing down bees is the same and will bring down all bees from all regions
+  
+<pre>
 ```bash
 ./bees down
 ```
+</pre>
 
-####Usage
+h2. Usage
+
 regions : eu-west-1b,ap-southeast-1b,us-west-2b
 
 Some options were added to work with hurl
-####options
+
+options
+
+<pre>
 ```bash
 $ ./bees --help
 Usage: 
@@ -248,11 +266,12 @@ Options:
                         hurl only: Display http(s) response codes per interval
                         instead of request statistics
 (trusty)rawm@localhost:~/beeswithmachineguns$
-
-
 ```
+</pre>
   
-####A bringing up bees example
+A bringing up bees example
+
+<pre>
 ```bash
 $ ./bees up -s 2 -k bees -g bees2 -l ubuntu -i ami-9342c0e0,ami-fd489d
 9e,ami-e8c93e88 -z eu-west-1b,ap-southeast-1b,us-west-2b
@@ -306,10 +325,12 @@ Bee i-d05a6c08: running @ 54.187.100.142
 Bee i-d15a6c09: running @ 54.201.177.125
 
 ```
+</pre>
 
 
+A bees attack example 
 
-####A bees attack example 
+<pre>
 ```bash
 $ ./bees attack --hurl -u $testurl -S20 -M1000 -H "Accept : text/html"
 eu-west-1b
@@ -418,8 +439,11 @@ Response Codes:
 Mission Assessment: Target crushed bee offensive.
 The swarm is awaiting new orders.
 ```
+</pre>
 
-####A bees attack example with --long_output
+A bees attack example with --long_output
+
+<pre>
 ```bash
 $ ./bees attack --hurl -u $testurl -S20 -M1000 -H "Accept : text/html" --long_output
 eu-west-1b
@@ -957,8 +981,12 @@ The swarm is awaiting new orders.
 
 
 ```
+</pre>
 
-##An example bees down
+
+An example bees down
+
+<pre>
 ```bash
 $ ./bees down
 Read 2 bees from the roster: eu-west-1b
@@ -975,6 +1003,7 @@ Calling off the swarm for us-west-2b.
 Stood down 2 bees.
 
 ```
+</pre>
 
 h2. The caveat! (PLEASE READ)
 
