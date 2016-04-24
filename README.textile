@@ -115,53 +115,49 @@ Having the ability to generate a lot of HTTPS requests from many different regio
 example .bees files in user home directory
 
 <pre>
-```bash
 $ ls ~/.bees* 
 .bees.ap-southeast-1b
 .bees.eu-west-1b
 .bees.us-west-2b
-```
 </pre>
 
 
-bees up
+h4. Hurl Usage
+
+
+h4. bees up
+
   Command line arguments are still the same however to add multiple zones with multiple amis, the values must be comma delimited. The ami and zones must also be in same order for it to work. So for example “-i ami-zone1,ami-zone2,ami-zone3 -z zone1,zone2,zone3”. 
   
-  <pre>
-  ```bash
+<pre>
   ./bees up -s 2 -k bees -g bees2 -l ubuntu -i ami-9342c0e0,ami-fd489d
 9e,ami-e8c93e88 -z eu-west-1b,ap-southeast-1b,us-west-2b
-  ```
 </pre>
 
-bees attack
+h4. bees attack
+
   In order to use the hurl platform, --hurl or -j must be supplied. Attacks will run concurrently and return a summarized output. The output is summarized per region. More information can be seen if user supplies the -o, --long_output options.
   
 <pre>
-```bash
 ./bees attack --hurl -u $testurl -S20 -M1000 -H "Accept : text/html"
-```
 </pre>
 
-bees down
-  Bringing down bees is the same and will bring down all bees from all regions
+h4. bees down
+
+  Bringing down bees is the same and will bring down all bees for all regions
   
 <pre>
-```bash
 ./bees down
-```
 </pre>
 
-h2. Usage
 
 regions : eu-west-1b,ap-southeast-1b,us-west-2b
 
 Some options were added to work with hurl
 
-options
+h4. Examples
 
 <pre>
-```bash
 $ ./bees --help
 Usage: 
 bees COMMAND [options]
@@ -266,13 +262,11 @@ Options:
                         hurl only: Display http(s) response codes per interval
                         instead of request statistics
 (trusty)rawm@localhost:~/beeswithmachineguns$
-```
 </pre>
   
 A bringing up bees example
 
 <pre>
-```bash
 $ ./bees up -s 2 -k bees -g bees2 -l ubuntu -i ami-9342c0e0,ami-fd489d
 9e,ami-e8c93e88 -z eu-west-1b,ap-southeast-1b,us-west-2b
 Connecting to the hive.
@@ -323,15 +317,12 @@ Bee i-2bf8aba5: running @ 52.221.250.224
 Read 2 bees from the roster: us-west-2b
 Bee i-d05a6c08: running @ 54.187.100.142
 Bee i-d15a6c09: running @ 54.201.177.125
-
-```
 </pre>
 
 
 A bees attack example 
 
 <pre>
-```bash
 $ ./bees attack --hurl -u $testurl -S20 -M1000 -H "Accept : text/html"
 eu-west-1b
 Read 2 bees from the roster: eu-west-1b
@@ -438,13 +429,11 @@ Response Codes:
 
 Mission Assessment: Target crushed bee offensive.
 The swarm is awaiting new orders.
-```
 </pre>
 
 A bees attack example with --long_output
 
 <pre>
-```bash
 $ ./bees attack --hurl -u $testurl -S20 -M1000 -H "Accept : text/html" --long_output
 eu-west-1b
 Read 2 bees from the roster: eu-west-1b
@@ -978,16 +967,12 @@ Response Codes:
 Mission Assessment: Target crushed bee offensive.
 The swarm is awaiting new orders.
 (trusty)rawm@localhost:~/beeswithmachineguns$
-
-
-```
 </pre>
 
 
 An example bees down
 
 <pre>
-```bash
 $ ./bees down
 Read 2 bees from the roster: eu-west-1b
 Connecting to the hive.
@@ -1001,8 +986,6 @@ Read 2 bees from the roster: us-west-2b
 Connecting to the hive.
 Calling off the swarm for us-west-2b.
 Stood down 2 bees.
-
-```
 </pre>
 
 h2. The caveat! (PLEASE READ)
