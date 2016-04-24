@@ -1,4 +1,4 @@
-h1. Bees with Machine Guns!
+h4. Bees with Machine Guns!
 
 A utility for arming (creating) many bees (micro EC2 instances) to attack (load test) targets (web applications).
 
@@ -97,7 +97,7 @@ bees -h
 
 h2. Introduction to additions:
 
-h1. Additions contributed Hurl integration and multi regional testing.
+h4. Additions contributed Hurl integration and multi regional testing.
 
 
   *hurl* is an http server load tester similar to ab/siege/weighttp/wrk with support for multithreading, parallelism, ssl, url ranges, and an api-server for querying the running performance statistics.  *hurl* is primarily useful for benchmarking http server applications.
@@ -108,7 +108,7 @@ For more information about *hurl* please visit https://github.com/VerizonDigital
 What kind of changes were made that's different from the old?
   Instead of writing bees information into a single ~/.bees file, each zone recognized in arguments creates a new unique bees file. Bees.py was modified to read these files. Up, attack, and down functions are run with threads.
 
-h1. Motivation
+h4. Motivation
 
 Having the ability to generate a lot of HTTPS requests from many different regions around the world allows us to better test our platforms and services. This is also real helpful when there are tools that need to be tested for such things as location of requests. 
 
