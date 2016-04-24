@@ -104,22 +104,24 @@ h4. Additions contributed Hurl integration and multi regional testing.
 For more information about *hurl* please visit https://github.com/VerizonDigital/hlx 
 
   Multi regional testing was added so user can call up multiple bees from different regions simultaneously. Users have the ability to “up”, “attack”, and  “down” instances from single command. “regions.json” file is supplied which contains public ami images with hurl pre installed for all regions. 
+  
 
-What kind of changes were made that's different from the old?
+*What kind of changes were made that's different from the old?*
   Instead of writing bees information into a single ~/.bees file, each zone recognized in arguments creates a new unique bees file. Bees.py was modified to read these files. Up, attack, and down functions are run with threads.
-
-h4. Motivation
-
-Having the ability to generate a lot of HTTPS requests from many different regions around the world allows us to better test our platforms and services. This is also real helpful when there are tools that need to be tested for such things as location of requests. 
-
+  
 example .bees files in user home directory
 
 <pre>
-$ ls ~/.bees* 
+$ ls ~/.bees* | xargs -0 basename
 .bees.ap-southeast-1b
 .bees.eu-west-1b
 .bees.us-west-2b
 </pre>
+
+
+h4. Motivation
+
+Having the ability to generate a lot of HTTPS requests from many different regions around the world allows us to better test our platforms and services. This is also real helpful when there are tools that need to be tested for such things as location of requests. 
 
 
 h4. Hurl Usage
@@ -151,7 +153,7 @@ h4. bees down
 </pre>
 
 
-regions : eu-west-1b,ap-southeast-1b,us-west-2b
+*regions used*: eu-west-1b,ap-southeast-1b,us-west-2b
 
 Some options were added to work with hurl
 
