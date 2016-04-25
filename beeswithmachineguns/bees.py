@@ -966,25 +966,25 @@ def _hurl_attack(params):
 
         if params['responses_per']:
             options += ' -L'
-            
+
         if params['verb'] is not '':
             options += ' -X %s' % params['verb']
-            
+
         if params['threads']:
             options += ' -t %d' % params['threads']
-            
+
         if params['fetches']:
             options += ' -f %d' % params['fetches']
 
         if params['timeout']:
             options += ' -T %d' % params['timeout']
-            
+
         if params['send_buffer']:
             options += ' -S %d' % params['send_buffer']
-            
+
         if params['recv_buffer']:
             options += ' -R %d' % params['recv_buffer']
- 
+
         params['options'] = options
 
         hurl_command = 'hurl %(url)s -p %(concurrent_requests)s %(options)s -j' % params

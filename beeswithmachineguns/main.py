@@ -200,8 +200,7 @@ commands:
                     time.sleep(delay)
         else:
             bees.up(options.servers, options.group, options.zone, options.instance, options.type, options.login, options.key, options.subnet, options.bid)
-            
-            
+
     elif command == 'attack':
         if not options.url:
             parser.error('To run an attack you need to specify a url with -u')

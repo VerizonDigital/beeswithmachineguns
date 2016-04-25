@@ -101,14 +101,14 @@ h4. Additions contributed Hurl integration and multi regional testing.
 
 
   *hurl* is an http server load tester similar to ab/siege/weighttp/wrk with support for multithreading, parallelism, ssl, url ranges, and an api-server for querying the running performance statistics.  *hurl* is primarily useful for benchmarking http server applications.
-For more information about *hurl* please visit https://github.com/VerizonDigital/hlx 
+For more information about *hurl* please visit https://github.com/VerizonDigital/hlx
 
-  Multi regional testing was added so user can call up multiple bees from different regions simultaneously. Users have the ability to “up”, “attack”, and  “down” instances from single command. “regions.json” file is supplied which contains public ami images with hurl pre installed for all regions. 
-  
+  Multi regional testing was added so user can call up multiple bees from different regions simultaneously. Users have the ability to “up”, “attack”, and  “down” instances from single command. “regions.json” file is supplied which contains public ami images with hurl pre installed for all regions.
+
 
 *What kind of changes were made that's different from the old?*
   Instead of writing bees information into a single ~/.bees file, each zone recognized in arguments creates a new unique bees file. Bees.py was modified to read these files. Up, attack, and down functions are run with threads.
-  
+
 example .bees files in user home directory
 
 <pre>
@@ -121,7 +121,7 @@ $ ls ~/.bees* | xargs -0 basename
 
 h4. Motivation
 
-Having the ability to generate a lot of HTTPS requests from many different regions around the world allows us to better test our platforms and services. This is also real helpful when there are tools that need to be tested for such things as location of requests. 
+Having the ability to generate a lot of HTTPS requests from many different regions around the world allows us to better test our platforms and services. This is also real helpful when there are tools that need to be tested for such things as location of requests.
 
 
 h4. Hurl Usage
@@ -129,8 +129,9 @@ h4. Hurl Usage
 
 h4. bees up
 
-  Command line arguments are still the same however to add multiple zones with multiple amis, the values must be comma delimited. The ami and zones must also be in same order for it to work. So for example “-i ami-zone1,ami-zone2,ami-zone3 -z zone1,zone2,zone3”. 
-  
+  Command line arguments are still the same however to add multiple zones with multiple amis, the values must be comma delimited. The ami and zones must also be in same order for it to work. So for example “-i ami-zone1,ami-zone2,ami-zone3 -z zone1,zone2,zone3”.
+
+
 <pre>
   ./bees up -s 2 -k bees -g bees2 -l ubuntu -i ami-9342c0e0,ami-fd489d
 9e,ami-e8c93e88 -z eu-west-1b,ap-southeast-1b,us-west-2b
@@ -139,7 +140,7 @@ h4. bees up
 h4. bees attack
 
   In order to use the hurl platform, --hurl or -j must be supplied. Attacks will run concurrently and return a summarized output. The output is summarized per region. More information can be seen if user supplies the -o, --long_output options.
-  
+
 <pre>
 ./bees attack --hurl -u $testurl -S20 -M1000 -H "Accept : text/html"
 </pre>
@@ -147,7 +148,7 @@ h4. bees attack
 h4. bees down
 
   Bringing down bees is the same and will bring down all bees for all regions
-  
+
 <pre>
 ./bees down
 </pre>
@@ -161,7 +162,7 @@ h4. Examples
 
 <pre>
 $ ./bees --help
-Usage: 
+Usage:
 bees COMMAND [options]
 
 Bees with Machine Guns
@@ -174,7 +175,7 @@ commands:
   attack  Begin the attack on a specific url.
   down    Shutdown and deactivate the load testing servers.
   report  Report the status of the load testing servers.
-    
+
 
 Options:
   -h, --help            show this help message and exit
@@ -265,7 +266,7 @@ Options:
                         instead of request statistics
 (trusty)rawm@localhost:~/beeswithmachineguns$
 </pre>
-  
+
 A bringing up bees example
 
 <pre>
@@ -322,7 +323,7 @@ Bee i-d15a6c09: running @ 54.201.177.125
 </pre>
 
 
-A bees attack example 
+A bees attack example
 
 <pre>
 $ ./bees attack --hurl -u $testurl -S20 -M1000 -H "Accept : text/html"
