@@ -29,7 +29,7 @@ try:
     from urllib.parse import urlparse
 except ImportError:
     from urlparse import urlparse
-from optparse import OptionParser, OptionGroup
+from optparse import OptionParser, OptionGroup, Values
 import threading
 import time
 import sys
@@ -125,9 +125,27 @@ commands:
     attack_group.add_option('-S', '--seconds', metavar="SECONDS", nargs=1,
                             action='store', dest='seconds', type='int', default=60,
                             help= "hurl only: The number of total seconds to attack the target (default: 60).")
+    attack_group.add_option('-X', '--verb', metavar="VERB", nargs=1,
+                            action='store', dest='verb', type='string', default='',
+                            help= "hurl only: Request command -HTTP verb to use -GET/PUT/etc. Default GET")
     attack_group.add_option('-M', '--rate', metavar="RATE", nargs=1,
                             action='store', dest='rate', type='int',
                             help= "hurl only: Max Request Rate.")
+    attack_group.add_option('-a', '--threads', metavar="THREADS", nargs=1,
+                            action='store', dest='threads', type='int', default=1,
+                            help= "hurl only: Number of parallel threads. Default: 1")
+    attack_group.add_option('-f', '--fetches', metavar="FETCHES", nargs=1,
+                            action='store', dest='fetches', type='int', 
+                            help= "hurl only: Num fetches per instance.")
+    attack_group.add_option('-d', '--timeout', metavar="TIMEOUT", nargs=1,
+                            action='store', dest='timeout', type='int',
+                            help= "hurl only: Timeout (seconds).")
+    attack_group.add_option('-E', '--send_buffer', metavar="SEND_BUFFER", nargs=1,
+                            action='store', dest='send_buffer', type='int',
+                            help= "hurl only: Socket send buffer size.")
+    attack_group.add_option('-F', '--recv_buffer', metavar="RECV_BUFFER", nargs=1,
+                            action='store', dest='recv_buffer', type='int',
+                            help= "hurl only: Socket receive buffer size.")
 
     # Optional
     attack_group.add_option('-T', '--tpr', metavar='TPR', nargs=1, action='store', dest='tpr', default=None, type='float',
@@ -180,9 +198,10 @@ commands:
                                                             options.key, options.subnet,
                                                             options.bid)).start()
                     time.sleep(delay)
-
         else:
             bees.up(options.servers, options.group, options.zone, options.instance, options.type, options.login, options.key, options.subnet, options.bid)
+            
+            
     elif command == 'attack':
         if not options.url:
             parser.error('To run an attack you need to specify a url with -u')
@@ -211,8 +230,13 @@ commands:
             seconds=options.seconds,
             rate=options.rate,
             long_output=options.long_output,
-            responses_per=options.responses_per
-
+            responses_per=options.responses_per,
+            verb=options.verb,
+            threads=options.threads,
+            fetches=options.fetches,
+            timeout=options.timeout,
+            send_buffer=options.send_buffer,
+            recv_buffer=options.recv_buffer
         )
         if options.hurl:
             for region in regions_list:

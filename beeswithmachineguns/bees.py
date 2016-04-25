@@ -829,7 +829,13 @@ def hurl_attack(url, n, c, **options):
             'seconds': options.get('seconds'),
             'rate' : options.get('rate'),
             'long_output' : options.get('long_output'),
-            'responses_per' : options.get('responses_per')
+            'responses_per' : options.get('responses_per'),
+            'verb' : options.get('verb'),
+            'threads' : options.get('threads'),
+            'fetches' : options.get('fetches'),
+            'timeout' : options.get('timeout'),
+            'send_buffer' : options.get('send_buffer'),
+            'recv_buffer' : options.get('recv_buffer')
         })
 
     print('Stinging URL so it will be cached for the attack.')
@@ -960,7 +966,25 @@ def _hurl_attack(params):
 
         if params['responses_per']:
             options += ' -L'
+            
+        if params['verb'] is not '':
+            options += ' -X %s' % params['verb']
+            
+        if params['threads']:
+            options += ' -t %d' % params['threads']
+            
+        if params['fetches']:
+            options += ' -f %d' % params['fetches']
 
+        if params['timeout']:
+            options += ' -T %d' % params['timeout']
+            
+        if params['send_buffer']:
+            options += ' -S %d' % params['send_buffer']
+            
+        if params['recv_buffer']:
+            options += ' -R %d' % params['recv_buffer']
+ 
         params['options'] = options
 
         hurl_command = 'hurl %(url)s -p %(concurrent_requests)s %(options)s -j' % params
