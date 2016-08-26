@@ -138,7 +138,7 @@ commands:
                             action='store', dest='threads', type='int', default=1,
                             help= "hurl only: Number of parallel threads. Default: 1")
     attack_group.add_option('-f', '--fetches', metavar="FETCHES", nargs=1,
-                            action='store', dest='fetches', type='int', 
+                            action='store', dest='fetches', type='int',
                             help= "hurl only: Num fetches per instance.")
     attack_group.add_option('-d', '--timeout', metavar="TIMEOUT", nargs=1,
                             action='store', dest='timeout', type='int',
@@ -162,6 +162,9 @@ commands:
     attack_group.add_option('-o', '--long_output', metavar="LONG_OUTPUT",
                             action='store_true', dest='long_output',
                             help="display hurl output")
+    attack_group.add_option('-V', '--verbose', metavar="VERBOSE",
+                            action='store_true', dest='verbose',
+                            help="display verbose output")
     attack_group.add_option('-L', '--responses_per', metavar="RESPONSE_PER",
                             action='store_true', dest='responses_per',
                             help="hurl only: Display http(s) response codes per interval instead of request statistics")
@@ -240,7 +243,8 @@ commands:
             fetches=options.fetches,
             timeout=options.timeout,
             send_buffer=options.send_buffer,
-            recv_buffer=options.recv_buffer
+            recv_buffer=options.recv_buffer,
+            verbose=options.verbose
         )
         if options.hurl:
             for region in regions_list:
