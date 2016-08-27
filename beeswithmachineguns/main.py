@@ -33,6 +33,7 @@ from optparse import OptionParser, OptionGroup, Values
 import threading
 import time
 import sys
+import logging
 
 def parse_options():
     """
@@ -209,10 +210,13 @@ commands:
             bees.up(options.servers, options.group, options.zone, options.instance, options.type, options.login, options.key, options.subnet, options.bid)
 
     elif command == 'attack':
+        if options.verbose:
+            logging.basicConfig(level=logging.INFO)
         if not options.url:
             parser.error('To run an attack you need to specify a url with -u')
 
         regions_list = []
+        logging.info("Existing regions: {}".format(bees._get_existing_regions()))
         for region in bees._get_existing_regions():
                 regions_list.append(region)
 
@@ -246,6 +250,7 @@ commands:
             recv_buffer=options.recv_buffer,
             verbose=options.verbose
         )
+        logging.info("additional_options: ", additional_options)
         if options.hurl:
             for region in regions_list:
                 additional_options['zone'] = region

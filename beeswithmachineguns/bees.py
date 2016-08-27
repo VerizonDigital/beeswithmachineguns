@@ -30,6 +30,7 @@ import re
 import socket
 import time
 import sys
+import logging
 IS_PY2 = sys.version_info.major == 2
 if IS_PY2:
     from urllib2 import urlopen, Request
@@ -62,6 +63,12 @@ def _redirect_stdout(outfile=None):
     sys.stdout = outfile or StringIO()
     yield
     sys.stdout = save_stdout
+
+def _header(message):
+    border = '*' * (len(message)+2)
+    print border
+    print '*' + message + '*'
+    print border
 
 def _read_server_list(*mr_zone):
     instance_ids = []
@@ -788,12 +795,20 @@ def hurl_attack(url, n, c, **options):
     """
     Test the root url of this site.
     """
+    if options.get('verbose'):
+        _header("Running Hurl Attack")
     print options.get('zone')
     username, key_name, zone, instance_ids = _read_server_list(options.get('zone'))
+    logging.info("username: {}\nkey_name: {}\nzone: {}\ninstance_ids: {}"\
+            .format(username, key_name, zone, instance_ids))
     headers = options.get('headers', '')
+    logging.info("headers".format( headers))
     contenttype = options.get('contenttype', '')
+    logging.info("contenttype: {}".format(contenttype))
     csv_filename = options.get("csv_filename", '')
+    logging.info("csv_filename: {}".format(csv_filename))
     cookies = options.get('cookies', '')
+    logging.info("cookies: {}".format(cookies))
     post_file = options.get('post_file', '')
     keep_alive = options.get('keep_alive', False)
     basic_auth = options.get('basic_auth', '')
@@ -811,6 +826,7 @@ def hurl_attack(url, n, c, **options):
     print('Connecting to the hive.')
 
     ec2_connection = boto.ec2.connect_to_region(_get_region(zone))
+    logging.info("ec2_connection: {}".format(ec2_connection))
 
     print('Assembling bees.')
 
@@ -870,7 +886,7 @@ def hurl_attack(url, n, c, **options):
             'send_buffer' : options.get('send_buffer'),
             'recv_buffer' : options.get('recv_buffer')
         })
-
+        logging.info("instance params for instance {}: {}".format(instance, params))
     print('Stinging URL so it will be cached for the attack.')
 
     request = Request(url)
