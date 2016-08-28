@@ -391,6 +391,7 @@ def _attack(params):
     """
     print('Bee %i is joining the swarm.' % params['i'])
 
+    print("PARAMS:\n", params)
     try:
         client = paramiko.SSHClient()
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -831,6 +832,7 @@ def hurl_attack(url, n, c, **options):
     print('Assembling bees.')
 
     reservations = ec2_connection.get_all_instances(instance_ids=instance_ids)
+    logging.info("reservations: {}".format(reservations))
 
     instances = []
 
@@ -838,6 +840,7 @@ def hurl_attack(url, n, c, **options):
         instances.extend(reservation.instances)
 
     instance_count = len(instances)
+    logging.info("instance_count: {}".format(instance_count))
 
     if n < instance_count * 2:
         print('bees: error: the total number of requests must be at least %d (2x num. instances)' % (instance_count * 2))
@@ -886,7 +889,7 @@ def hurl_attack(url, n, c, **options):
             'send_buffer' : options.get('send_buffer'),
             'recv_buffer' : options.get('recv_buffer')
         })
-        logging.info("instance params for instance {}: {}".format(instance, params))
+        logging.info("instance params for instance {}:\n{}\n".format(instance, params))
     print('Stinging URL so it will be cached for the attack.')
 
     request = Request(url)
@@ -933,12 +936,17 @@ def hurl_attack(url, n, c, **options):
     print('Organizing the swarm.')
     # Spin up processes for connecting to EC2 instances
     pool = Pool(len(params))
+    if options.get('verbose'):
+        _header("Establising ssh connection to bee")
+    logging.info("Making ssh connection to bees now")
     results = pool.map(_hurl_attack, params)
+    logging.info("\nResults returned from hurl: {}".format(results))
 
-
+    logging.info("Summarizing results")
     summarized_results = _hurl_summarize_results(results, params, csv_filename)
     print('Offensive complete.')
 
+    logging.info("Printing summarized results")
     _hurl_print_results(summarized_results)
 
     print('The swarm is awaiting new orders.')
@@ -1151,41 +1159,48 @@ def _hurl_summarize_results(results, params, csv_filename):
                 elif k.startswith('50'):
                     summarized_results['total_number_of_500s']+=float(v)
 
-    complete_results = [r['bytes'] for r in summarized_results['complete_bees']]
-    summarized_results['total_bytes'] = sum(complete_results)
+    try:
+        complete_results = [r['bytes'] for r in summarized_results['complete_bees']]
+        summarized_results['total_bytes'] = sum(complete_results)
 
-    complete_results = [r['seconds'] for r in summarized_results['complete_bees']]
-    summarized_results['seconds'] = max(complete_results)
+        complete_results = [r['seconds'] for r in summarized_results['complete_bees']]
+        summarized_results['seconds'] = max(complete_results)
 
-    complete_results = [r['connect-ms-max'] for r in summarized_results['complete_bees']]
-    summarized_results['connect-ms-max'] = max(complete_results)
+        complete_results = [r['connect-ms-max'] for r in summarized_results['complete_bees']]
+        summarized_results['connect-ms-max'] = max(complete_results)
 
-    complete_results = [r['1st-resp-ms-max'] for r in summarized_results['complete_bees']]
-    summarized_results['1st-resp-ms-max'] = max(complete_results)
+        complete_results = [r['1st-resp-ms-max'] for r in summarized_results['complete_bees']]
+        summarized_results['1st-resp-ms-max'] = max(complete_results)
 
-    complete_results = [r['1st-resp-ms-mean'] for r in summarized_results['complete_bees']]
-    summarized_results['1st-resp-ms-mean'] = sum(complete_results) / summarized_results['num_complete_bees']
+        complete_results = [r['1st-resp-ms-mean'] for r in summarized_results['complete_bees']]
+        summarized_results['1st-resp-ms-mean'] = sum(complete_results) / summarized_results['num_complete_bees']
 
-    complete_results = [r['fetches-per-sec'] for r in summarized_results['complete_bees']]
-    summarized_results['fetches-per-sec'] = sum(complete_results) / summarized_results['num_complete_bees']
+        complete_results = [r['fetches-per-sec'] for r in summarized_results['complete_bees']]
+        summarized_results['fetches-per-sec'] = sum(complete_results) / summarized_results['num_complete_bees']
 
-    complete_results = [r['fetches'] for r in summarized_results['complete_bees']]
-    summarized_results['total-fetches'] = sum(complete_results)
+        complete_results = [r['fetches'] for r in summarized_results['complete_bees']]
+        summarized_results['total-fetches'] = sum(complete_results)
 
-    complete_results = [r['connect-ms-min'] for r in summarized_results['complete_bees']]
-    summarized_results['connect-ms-min'] = min(complete_results)
+        complete_results = [r['connect-ms-min'] for r in summarized_results['complete_bees']]
+        summarized_results['connect-ms-min'] = min(complete_results)
 
-    complete_results = [r['bytes-per-sec'] for r in summarized_results['complete_bees']]
-    summarized_results['bytes-per-second-mean'] = sum(complete_results) / summarized_results['num_complete_bees']
+        complete_results = [r['bytes-per-sec'] for r in summarized_results['complete_bees']]
+        summarized_results['bytes-per-second-mean'] = sum(complete_results) / summarized_results['num_complete_bees']
 
-    complete_results = [r['end2end-ms-min'] for r in summarized_results['complete_bees']]
-    summarized_results['end2end-ms-min'] = sum(complete_results) / summarized_results['num_complete_bees']
+        complete_results = [r['end2end-ms-min'] for r in summarized_results['complete_bees']]
+        summarized_results['end2end-ms-min'] = sum(complete_results) / summarized_results['num_complete_bees']
 
-    complete_results = [r['mean-bytes-per-conn'] for r in summarized_results['complete_bees']]
-    summarized_results['mean-bytes-per-conn'] = sum(complete_results) / summarized_results['num_complete_bees']
+        complete_results = [r['mean-bytes-per-conn'] for r in summarized_results['complete_bees']]
+        summarized_results['mean-bytes-per-conn'] = sum(complete_results) / summarized_results['num_complete_bees']
 
-    complete_results = [r['connect-ms-mean'] for r in summarized_results['complete_bees']]
-    summarized_results['connect-ms-mean'] = sum(complete_results) / summarized_results['num_complete_bees']
+        complete_results = [r['connect-ms-mean'] for r in summarized_results['complete_bees']]
+        summarized_results['connect-ms-mean'] = sum(complete_results) / summarized_results['num_complete_bees']
+    except ZeroDivisionError as e:
+        print ("Results from hurl are showing empty or zero meaning no connection to target was made")
+        print ("Can run hurl command manually against target")
+        print ("Printing returned results and exiting")
+        print ("ERROR MESSAGE --> " , e)
+        sys.exit(1)
 
     if summarized_results['num_complete_bees'] == 0:
         summarized_results['mean_response'] = "no bees are complete"
